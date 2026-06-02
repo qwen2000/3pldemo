@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+venv/
+.env
+
+# Node
+node_modules/
+dist/
+
+# IDE
+.idea/
+.vscode/
+
+# Data (可选：大数据文件不提交)
+*.xlsx
+*.csv
