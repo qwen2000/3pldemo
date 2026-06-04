@@ -4,42 +4,24 @@ import {
   Download, Filter, AlertTriangle, AlertOctagon,
   Play, RefreshCw, ArrowRight, BarChart2, PieChart as PieChartIcon,
   Globe, Truck, Activity, CheckCircle, XCircle, Clock,
-  Zap, TrendingDown, Users, DollarSign, Shield,
-  ChevronRight, ChevronLeft, Pause, FastForward,
+  Zap, TrendingDown, Users, DollarSign,
+  ChevronRight, ChevronLeft, Pause,
   MessageSquare, Phone, Mail, Award, Target
 } from 'lucide-react';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend, LineChart, Line,
+  Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell,
   ComposedChart
 } from 'recharts';
 
 // ==========================================
-// 真实数据 Hook 导入
+// Real Data Hook Import
 // ==========================================
-import { useRealDashboardData } from './hooks/useRealData';
+import { useRealDashboardData, useFilteredOrders } from './hooks/useRealData';
 
 // ==========================================
-// Mock Data (保留作为 fallback)
+// Mock Data (keep as fallback)
 // ==========================================
-
-const trendData = [
-  { date: '2026-04-20', volume: 145000, aiPredicted: 142000, actual: 145000 },
-  { date: '2026-04-27', volume: 152000, aiPredicted: 155000, actual: 152000 },
-  { date: '2026-05-04', volume: 148000, aiPredicted: 150000, actual: 148000 },
-  { date: '2026-05-11', volume: 165000, aiPredicted: 162000, actual: 165000 },
-  { date: '2026-05-18', volume: 172000, aiPredicted: 170000, actual: 172000 },
-  { date: '2026-05-25', volume: 185000, aiPredicted: 188000, actual: 185000 },
-];
-
-const categoryData = [
-  { name: 'Apparel', value: 85000, growth: 12 },
-  { name: 'Electronics', value: 45000, growth: -5 },
-  { name: 'Home Goods', value: 30000, growth: 23 },
-  { name: 'Beauty', value: 15000, growth: 8 },
-  { name: 'Misc', value: 10000, growth: 3 },
-];
-const COLORS = ['#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#e5e7eb'];
 
 const clientData = [
   { id: 'A***Z', dest: 'US, CA', w1Vol: 45000, w1Wt: 12500.5, w2Vol: 46000, w2Wt: 12800, w3Vol: 47000, w3Wt: 13000, w4Vol: 48000, w4Wt: 13200, healthScore: 92, churnRisk: 'LOW' },
@@ -57,7 +39,17 @@ const procurementData = clientData.map(c => {
   return { ...c, currentCap, gap, declineRate, potentialLoss };
 });
 
-const supplierData = [
+interface Supplier {
+  name: string;
+  baseRate: number;
+  aiTarget: number;
+  current: number;
+  status: string;
+  responseTime: string | null;
+  reliability: number;
+}
+
+const supplierData: Supplier[] = [
   { name: 'DHL Freight', baseRate: 2.8, aiTarget: 2.4, current: 2.8, status: 'waiting', responseTime: null, reliability: 96 },
   { name: 'Kuehne+Nagel', baseRate: 2.6, aiTarget: 2.3, current: 2.6, status: 'waiting', responseTime: null, reliability: 94 },
   { name: 'DB Schenker', baseRate: 2.5, aiTarget: 2.2, current: 2.5, status: 'waiting', responseTime: null, reliability: 92 },
@@ -80,10 +72,8 @@ function App() {
     costSavings: 127500
   });
 
-  // 获取真实数据（用于顶部指标）
   const { summary, loading: realDataLoading } = useRealDashboardData();
 
-  // 当真实数据加载完成，更新顶部指标
   useEffect(() => {
     if (summary) {
       setMetrics(m => ({
@@ -119,15 +109,15 @@ function App() {
             <div>
               <h1 className="text-lg font-bold text-slate-800 leading-tight">3PL AI Capacity Center</h1>
               <p className="text-xs text-slate-500">
-                {realDataLoading ? '加载真实数据中...' : `真实数据模式 • ${summary?.total_orders?.toLocaleString() || '...'} 条订单`}
+                {realDataLoading ? 'Loading real data...' : `Real Data Mode • ${summary?.total_orders?.toLocaleString() || '...'} orders`}
               </p>
             </div>
           </div>
           <nav className="flex space-x-1 bg-gray-100 p-1 rounded-lg overflow-x-auto">
-            <NavButton id="overview" label="Market Overview" icon={Activity} active={activeTab} onClick={setActiveTab} />
-            <NavButton id="procurement" label="Procurement Plan" icon={ShoppingCart} active={activeTab} onClick={setActiveTab} />
-            <NavButton id="forecast" label="4-Week Forecast" icon={Calendar} active={activeTab} onClick={setActiveTab} />
-            <NavButton id="demo" label="Business Value Demo" icon={Play} active={activeTab} onClick={setActiveTab} />
+<NavButton id="overview" label="Market Overview" icon={Activity} active={activeTab} onClick={setActiveTab} />
+<NavButton id="forecast" label="4-Week Forecast" icon={Calendar} active={activeTab} onClick={setActiveTab} />
+<NavButton id="procurement" label="Procurement Plan" icon={ShoppingCart} active={activeTab} onClick={setActiveTab} />
+<NavButton id="demo" label="Business Value Demo" icon={Play} active={activeTab} onClick={setActiveTab} />
           </nav>
         </div>
       </header>
@@ -156,8 +146,8 @@ function App() {
 
       <main className="max-w-7xl mx-auto p-6">
         {activeTab === 'overview' && <OverviewModule />}
-        {activeTab === 'procurement' && <ProcurementModule />}
         {activeTab === 'forecast' && <ForecastModule />}
+        {activeTab === 'procurement' && <ProcurementModule />}
         {activeTab === 'demo' && <BusinessValueDemo />}
       </main>
     </div>
@@ -233,170 +223,423 @@ function TableCell({ children, className = "", align = 'left' }: { children: Rea
 }
 
 // ==========================================
-// 新增：指标卡片组件
+// Metric Card Component
 // ==========================================
 
 function MetricCard({ title, value, icon: Icon, color, alert }: {
   title: string;
   value: string;
   icon: React.ElementType;
-  color: 'blue' | 'green' | 'red' | 'purple';
+  color: 'blue' | 'green' | 'red' | 'purple' | 'cyan' | 'amber';
   alert?: boolean;
 }) {
-  const colorClasses = {
-    blue: 'bg-blue-50 text-blue-700 border-blue-200',
-    green: 'bg-green-50 text-green-700 border-green-200',
-    red: 'bg-red-50 text-red-700 border-red-200',
-    purple: 'bg-purple-50 text-purple-700 border-purple-200',
+  const iconColors = {
+    blue: 'text-blue-600 bg-blue-50',
+    green: 'text-emerald-600 bg-emerald-50',
+    purple: 'text-violet-600 bg-violet-50',
+    cyan: 'text-cyan-600 bg-cyan-50',
+    red: alert ? 'text-red-600 bg-red-50' : 'text-rose-500 bg-rose-50',
+    amber: 'text-amber-600 bg-amber-50',
+  };
+
+  const valueColors = {
+    blue: 'text-slate-700',
+    green: 'text-slate-700',
+    purple: 'text-slate-700',
+    cyan: 'text-slate-700',
+    red: alert ? 'text-red-600' : 'text-slate-700',
+    amber: 'text-slate-700',
   };
 
   return (
-    <div className={`p-4 rounded-lg border ${colorClasses[color]} shadow-sm`}>
-      <div className="flex items-center gap-3">
-        <div className="p-2 rounded-lg bg-white/50">
-          <Icon size={20} className={alert ? 'text-red-600' : ''} />
-        </div>
-        <div>
-          <div className="text-xs opacity-80 uppercase tracking-wider">{title}</div>
-          <div className="text-2xl font-bold">{value}</div>
-        </div>
+    <div className="p-3 rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center gap-2 mb-1">
+        <Icon size={14} className={iconColors[color]} />
+        <span className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
+          {title}
+        </span>
+      </div>
+      <div className={`text-base font-semibold ${valueColors[color]}`}>
+        {value}
       </div>
     </div>
   );
 }
 
 // ==========================================
-// 修改后的 OverviewModule - 使用真实数据
+// OverviewModule
 // ==========================================
 
 function OverviewModule() {
-  const [showConfidence, setShowConfidence] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [importMode, setImportMode] = useState<'api' | 'csv' | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
 
-  // 使用真实数据
+  const [dateRange, setDateRange] = useState({
+    startDate: '2025-11-01',
+    endDate: '2026-04-30',
+  });
+
+  const MIN_DATE = '2025-11-01';
+  const MAX_DATE = '2026-04-30';
+
   const {
     summary,
-    trendData: realTrendData,
-    categoryChartData: realCategoryData,
+    trendData,
+    categoryChartData,
     countryDistribution,
-    loading,
+    customerStats,
+    orders,
+    loading: apiLoading,
     error
   } = useRealDashboardData();
 
-  // 计算真实数据的统计指标
+  const { filteredOrders, filters, setFilters } = useFilteredOrders(orders);
+
+  const EXTENDED_COLORS = [
+    '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#1d4ed8',
+    '#ef4444', '#f87171', '#fca5a5', '#fecaca', '#b91c1c',
+    '#22c55e', '#4ade80', '#86efac', '#bbf7d0', '#15803d',
+    '#f59e0b', '#fbbf24', '#fcd34d', '#fde68a', '#b45309',
+    '#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe', '#6d28d9',
+    '#ec4899', '#f472b6', '#f9a8d4', '#fbcfe8', '#be185d',
+    '#06b6d4', '#22d3ee', '#67e8f9', '#a5f3fc', '#0891b2',
+  ];
+
+  const handleStartDateChange = (start: string) => {
+    const startDate = new Date(start);
+    const endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + 6);
+
+    const maxDate = new Date(MAX_DATE);
+    const finalEndDate = endDate > maxDate ? maxDate : endDate;
+
+    setDateRange({
+      startDate: start,
+      endDate: finalEndDate.toISOString().split('T')[0],
+    });
+  };
+
+  const handleLoadData = () => {
+    setIsLoading(true);
+    setTimeout(() => {
+      setIsLoading(false);
+      setDataLoaded(true);
+    }, 1500);
+  };
+
+  const handleCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setIsLoading(true);
+      setTimeout(() => {
+        setIsLoading(false);
+        setDataLoaded(true);
+        setImportMode(null);
+      }, 2000);
+    }
+  };
+
+  const uniqueCountries = [...new Set(orders.map(o => o.country))].sort();
+
   const realMetrics = summary ? {
     totalOrders: summary.total_orders?.toLocaleString() || 'N/A',
     totalValue: `$${(summary.total_value / 1000).toFixed(1)}K`,
     totalWeight: `${(summary.total_weight / 1000).toFixed(1)}K kg`,
     highRiskRate: `${(summary.high_risk_rate * 100).toFixed(1)}%`,
     countryCount: summary.unique_countries || 0,
+    avgOrderValue: `$${summary.avg_value?.toFixed(2) || 'N/A'}`,
   } : null;
 
-  // 使用真实数据或 fallback
-  const displayTrendData = realTrendData.length > 0 ? realTrendData : trendData;
-  const displayCategoryData = realCategoryData.length > 0 ? realCategoryData : categoryData;
+  const displayTrendData = trendData.length > 0 ? trendData : [];
+  const displayCategoryData = categoryChartData.length > 0 ? categoryChartData : [];
 
-  // 加载状态
-  if (loading) {
+  // ==================== IMPORT DATA PANEL ====================
+  if (!dataLoaded) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        <span className="ml-3 text-gray-600">加载真实数据中...</span>
+      <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="bg-white p-8 rounded-lg border border-gray-200 shadow-sm">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+              <Download size={32} className="text-blue-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-800">Import Data</h2>
+            <p className="text-slate-500 mt-2">Load your 3PL data to start analysis</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto mb-8">
+            <button
+              onClick={() => setImportMode('api')}
+              className={`p-6 rounded-xl border-2 text-left transition-all ${
+                importMode === 'api' 
+                  ? 'border-blue-500 bg-blue-50' 
+                  : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`p-3 rounded-lg ${importMode === 'api' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                  <Globe size={24} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800">Sync with API</h3>
+                  <p className="text-sm text-slate-500">Connect to live data source</p>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setImportMode('csv')}
+              className={`p-6 rounded-xl border-2 text-left transition-all ${
+                importMode === 'csv' 
+                  ? 'border-green-500 bg-green-50' 
+                  : 'border-gray-200 hover:border-green-300 hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`p-3 rounded-lg ${importMode === 'csv' ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                  <Package size={24} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800">Upload CSV</h3>
+                  <p className="text-sm text-slate-500">Import from local file</p>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          {importMode && (
+            <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                <div className="flex items-center gap-2 mb-4">
+                  <Calendar size={20} className="text-gray-500" />
+                  <h3 className="font-semibold text-slate-800">Select Data Period (Fixed 6 Months)</h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                    <input
+                      type="date"
+                      min={MIN_DATE}
+                      max={MAX_DATE}
+                      value={dateRange.startDate}
+                      onChange={(e) => handleStartDateChange(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Available: {MIN_DATE} to {MAX_DATE}</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">End Date (Auto-calculated)</label>
+                    <input
+                      type="date"
+                      value={dateRange.endDate}
+                      disabled
+                      className="w-full px-4 py-2 border border-gray-200 bg-gray-100 rounded-lg text-gray-600"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">6 months from start date</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 mt-4">
+                  <button
+                    onClick={() => handleStartDateChange('2025-11-01')}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      dateRange.startDate === '2025-11-01' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Nov 2025 - Apr 2026
+                  </button>
+                  <button
+                    onClick={() => handleStartDateChange('2025-12-01')}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      dateRange.startDate === '2025-12-01' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Dec 2025 - May 2026
+                  </button>
+                  <button
+                    onClick={() => handleStartDateChange('2026-01-01')}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      dateRange.startDate === '2026-01-01' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Jan 2026 - Jun 2026
+                  </button>
+                </div>
+              </div>
+
+              {importMode === 'api' ? (
+                <button
+                  onClick={handleLoadData}
+                  disabled={isLoading}
+                  className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold rounded-xl shadow-lg transition-all flex items-center justify-center gap-3"
+                >
+                  {isLoading ? (
+                    <>
+                      <RefreshCw size={24} className="animate-spin" />
+                      Syncing with API...
+                    </>
+                  ) : (
+                    <>
+                      <Globe size={24} />
+                      Sync Data from API
+                    </>
+                  )}
+                </button>
+              ) : (
+                <div className="space-y-4">
+                  <label className="block w-full">
+                    <input
+                      type="file"
+                      accept=".csv"
+                      onChange={handleCSVUpload}
+                      className="hidden"
+                    />
+                    <div className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl shadow-lg transition-all flex items-center justify-center gap-3 cursor-pointer">
+                      {isLoading ? (
+                        <>
+                          <RefreshCw size={24} className="animate-spin" />
+                          Processing CSV...
+                        </>
+                      ) : (
+                        <>
+                          <Package size={24} />
+                          Select CSV File
+                        </>
+                      )}
+                    </div>
+                  </label>
+                  <p className="text-center text-sm text-gray-500">
+                    Expected columns: Order ID, Country, Category, Value, Weight, etc.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
 
-  // 错误状态
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-lg shadow-xl flex items-center gap-3">
+          <RefreshCw size={24} className="animate-spin text-blue-600" />
+          <span className="font-medium">Loading data...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (apiLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <span className="ml-3 text-gray-600">Loading dashboard data...</span>
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div className="p-6 bg-red-50 rounded-lg">
-        <h3 className="text-red-800 font-bold">数据加载失败</h3>
-        <p className="text-red-600">{error instanceof Error ? error.message : 'Unknown error'}</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="mt-3 px-4 py-2 bg-red-600 text-white rounded"
-        >
-          重试
+        <h3 className="text-red-800 font-bold">Data Loading Failed</h3>
+        <p className="text-red-600">{error.message}</p>
+        <button onClick={() => window.location.reload()} className="mt-3 px-4 py-2 bg-red-600 text-white rounded">
+          Retry
         </button>
       </div>
     );
   }
 
+  // ==================== MAIN DASHBOARD ====================
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
 
-      {/* 真实数据指标卡片 */}
+      {/* Data Loaded Header */}
+      <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-green-100 rounded-lg">
+            <CheckCircle size={20} className="text-green-600" />
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Data Loaded</p>
+            <p className="font-semibold text-slate-800">
+              {dateRange.startDate} to {dateRange.endDate} • {summary?.total_orders?.toLocaleString() || '...'} orders
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => setDataLoaded(false)}
+          className="px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg font-medium"
+        >
+          Change Data Source
+        </button>
+      </div>
+
+      {/* Metrics Cards */}
       {realMetrics && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <MetricCard
-            title="总订单量"
-            value={realMetrics.totalOrders}
-            icon={Package}
-            color="blue"
-          />
-          <MetricCard
-            title="总申报价值"
-            value={realMetrics.totalValue}
-            icon={DollarSign}
-            color="green"
-          />
-          <MetricCard
-            title="高风险率"
-            value={realMetrics.highRiskRate}
-            alert={summary!.high_risk_rate > 0.1}
-            icon={AlertTriangle}
-            color="red"
-          />
-          <MetricCard
-            title="覆盖国家"
-            value={realMetrics.countryCount.toString()}
-            icon={Globe}
-            color="purple"
-          />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <MetricCard title="Total Orders" value={realMetrics.totalOrders} icon={Package} color="blue" />
+          <MetricCard title="Total Value" value={realMetrics.totalValue} icon={DollarSign} color="green" />
+          <MetricCard title="Total Weight" value={realMetrics.totalWeight} icon={Truck} color="purple" />
+          <MetricCard title="Avg Order Value" value={realMetrics.avgOrderValue} icon={TrendingUp} color="cyan" />
+          <MetricCard title="High Risk Rate" value={realMetrics.highRiskRate} alert={summary!.high_risk_rate > 0.1} icon={AlertTriangle} color="red" />
+          <MetricCard title="Countries" value={realMetrics.countryCount.toString()} icon={Globe} color="amber" />
         </div>
       )}
 
-      {/* 标题区域 */}
+      {/* Header with Show Details Button */}
       <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg">
             <TrendingUp size={24} />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-800">真实数据概览</h2>
+            <h2 className="text-lg font-bold text-slate-800">Market Overview</h2>
             <p className="text-sm text-slate-500">
-              基于 {summary?.total_orders?.toLocaleString() || '...'} 条真实订单 •
-              数据时间: 2026-01-16 ~ 2026-01-20
+              Based on {summary?.total_orders?.toLocaleString() || '...'} real orders •
+              Data period: {dateRange.startDate} ~ {dateRange.endDate}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setShowConfidence(!showConfidence)}
+            onClick={() => setShowDetails(!showDetails)}
             className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100"
           >
             <Target size={16} />
-            {showConfidence ? '隐藏详情' : '显示详情'}
+            {showDetails ? 'Hide Details' : 'Show Details'}
           </button>
           <div className="flex items-center gap-2 text-sm text-slate-500 bg-slate-50 px-3 py-2 rounded border border-slate-200">
             <Globe size={16} />
-            <span>国家: <strong>{countryDistribution.length}</strong> 个</span>
+            <span>Countries: <strong>{countryDistribution.length}</strong></span>
           </div>
         </div>
       </div>
 
-      {/* 图表区域 */}
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* 国家订单分布图 */}
+        {/* Country Distribution */}
         <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200 shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <BarChart2 size={18} className="text-slate-400" />
-              <h3 className="font-bold text-slate-800">国家订单分布（真实数据）</h3>
+              <h3 className="font-bold text-slate-800">Orders by Country (Top 10)</h3>
             </div>
             <div className="flex items-center gap-4 text-sm">
               <span className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-blue-500 rounded" /> 实际订单
+                <div className="w-3 h-3 bg-blue-500 rounded" /> Actual Orders
               </span>
             </div>
           </div>
@@ -410,121 +653,273 @@ function OverviewModule() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis
-                  dataKey="date"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 12, fill: '#64748b' }}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 12, fill: '#64748b' }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: '8px',
-                    border: 'none',
-                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="volume"
-                  stroke="#3b82f6"
-                  strokeWidth={3}
-                  fill="url(#colorVol)"
-                  name="订单量"
-                />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                <Area type="monotone" dataKey="volume" stroke="#3b82f6" strokeWidth={3} fill="url(#colorVol)" name="Orders" />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* 类目分布饼图 */}
+        {/* Category Distribution */}
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
           <div className="flex items-center gap-2 mb-6">
             <PieChartIcon size={18} className="text-slate-400" />
-            <h3 className="font-bold text-slate-800">一级类目分布</h3>
+            <h3 className="font-bold text-slate-800">Category Distribution</h3>
           </div>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={displayCategoryData}
-                  innerRadius={60}
+                  innerRadius={50}
                   outerRadius={80}
                   paddingAngle={2}
                   dataKey="value"
                   nameKey="name"
                 >
                   {displayCategoryData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={EXTENDED_COLORS[index % EXTENDED_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip
-                  formatter={(value: number, _name: string, props: any) => [
-                    `${value.toLocaleString()} 单`,
-                    props.payload.name
-                  ]}
-                />
+                <Tooltip formatter={(value: number, _name: string, props: any) => [`${value.toLocaleString()} orders`, props.payload.name]} />
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="space-y-2 mt-2 max-h-32 overflow-y-auto">
+          <div className="space-y-2 mt-2 max-h-40 overflow-y-auto">
             {displayCategoryData.map((cat, i) => (
               <div key={i} className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: COLORS[i % COLORS.length] }}
-                  />
-                  <span className="text-slate-600 truncate max-w-[100px]">{cat.name}</span>
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: EXTENDED_COLORS[i % EXTENDED_COLORS.length] }} />
+                  <span className="text-slate-600 truncate max-w-[120px]" title={cat.name}>{cat.name}</span>
                 </div>
-                <span className={cat.growth > 0 ? 'text-green-600 font-medium' : 'text-red-500 font-medium'}>
-                  {cat.growth > 0 ? '↗' : '↘'} {Math.abs(cat.growth)}%
-                </span>
+                <span className="text-slate-500">{cat.value.toLocaleString()}</span>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* 国家详细数据表格 */}
-      {showConfidence && countryDistribution.length > 0 && (
+      {/* ========== CUSTOMER STATISTICS (常规显示) ========== */}
+      {customerStats.length > 0 && (
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="font-bold text-slate-800">国家详细统计</h3>
+            <h3 className="font-bold text-slate-800">Customer Statistics Detail</h3>
+            <p className="text-sm text-gray-500 mt-1">Top customers by order volume • Customer names masked for privacy</p>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-h-[280px] overflow-y-auto">
             <table className="min-w-full">
               <thead>
                 <tr className="bg-gray-50">
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">国家</th>
-                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">订单数</th>
-                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">总价值</th>
-                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">平均风险</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Customer ID</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Orders</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Total Value</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Total Weight (kg)</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Top 3 Countries</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Market Share</th>
                 </tr>
               </thead>
               <tbody>
-                {countryDistribution.slice(0, 10).map((country, idx) => (
+                {customerStats.map((cust, idx) => (
                   <tr key={idx} className="hover:bg-gray-50 border-b border-gray-100">
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                      {country.country}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center">
+                          <Users size={14} className="text-slate-500" />
+                        </div>
+                        <span className="text-sm font-mono font-medium text-gray-900">
+                          {cust.customer}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-right text-gray-700 font-medium">
+                      {cust.orders.toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-gray-700">
-                      {country.orders.toLocaleString()}
+                      ${cust.totalValue.toFixed(2)}
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-gray-700">
-                      ${country.total_value.toFixed(2)}
+                      {cust.totalWeight.toFixed(2)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-right">
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        country.avg_risk > 0.7 ? 'bg-red-100 text-red-700' :
-                        country.avg_risk > 0.4 ? 'bg-yellow-100 text-yellow-700' :
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1">
+                        {cust.topCountries.map((country, i) => (
+                          <span
+                            key={i}
+                            className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded font-medium"
+                          >
+                            {country}
+                            {i < cust.topCountries.length - 1 && (
+                              <span className="text-blue-400 ml-1">›</span>
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-blue-500 rounded-full"
+                            style={{ width: `${Math.min(cust.marketShare, 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-medium text-gray-600 w-10">
+                          {cust.marketShare.toFixed(1)}%
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {customerStats.length >= 20 && (
+            <div className="px-6 py-3 bg-gray-50 text-center text-sm text-gray-500">
+              Showing top 20 customers
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========== ORDER DATA EXPLORER (受 showDetails 控制) ========== */}
+      {showDetails && (
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <Filter size={18} />
+                Order Data Explorer
+                <span className="text-sm font-normal text-gray-500">({filteredOrders.length} of {orders.length} records)</span>
+              </h3>
+
+              <div className="flex flex-wrap gap-3">
+                <input
+                  type="text"
+                  placeholder="Search order ID, product, country..."
+                  value={filters.searchTerm}
+                  onChange={(e) => setFilters(f => ({ ...f, searchTerm: e.target.value }))}
+                  className="px-3 py-1.5 border border-gray-300 rounded-md text-sm w-64"
+                />
+
+                <select
+                  multiple
+                  value={filters.countries}
+                  onChange={(e) => {
+                    const selected = Array.from(e.target.selectedOptions, o => o.value);
+                    setFilters(f => ({ ...f, countries: selected }));
+                  }}
+                  className="px-3 py-1.5 border border-gray-300 rounded-md text-sm w-32"
+                  title="Filter by Country"
+                >
+                  {uniqueCountries.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+
+                <select
+                  value={filters.riskLevel}
+                  onChange={(e) => setFilters(f => ({ ...f, riskLevel: e.target.value }))}
+                  className="px-3 py-1.5 border border-gray-300 rounded-md text-sm"
+                >
+                  <option value="all">All Risk Levels</option>
+                  <option value="high">High Risk (&ge;70%)</option>
+                  <option value="medium">Medium Risk (40-70%)</option>
+                  <option value="low">Low Risk (&lt;40%)</option>
+                </select>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    placeholder="Min $"
+                    value={filters.minValue}
+                    onChange={(e) => setFilters(f => ({ ...f, minValue: e.target.value }))}
+                    className="px-3 py-1.5 border border-gray-300 rounded-md text-sm w-20"
+                  />
+                  <span className="text-gray-400">-</span>
+                  <input
+                    type="number"
+                    placeholder="Max $"
+                    value={filters.maxValue}
+                    onChange={(e) => setFilters(f => ({ ...f, maxValue: e.target.value }))}
+                    className="px-3 py-1.5 border border-gray-300 rounded-md text-sm w-20"
+                  />
+                </div>
+
+                <button
+                  onClick={() => setFilters({ countries: [], categories: [], minValue: '', maxValue: '', riskLevel: 'all', searchTerm: '' })}
+                  className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800"
+                >
+                  Clear All
+                </button>
+              </div>
+            </div>
+
+            {(filters.countries.length > 0 || filters.riskLevel !== 'all' || filters.minValue || filters.maxValue || filters.searchTerm) && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {filters.countries.map(c => (
+                  <span key={c} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full flex items-center gap-1">
+                    Country: {c}
+                    <button onClick={() => setFilters(f => ({ ...f, countries: f.countries.filter(x => x !== c) }))}>×</button>
+                  </span>
+                ))}
+                {filters.riskLevel !== 'all' && (
+                  <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full flex items-center gap-1">
+                    Risk: {filters.riskLevel}
+                    <button onClick={() => setFilters(f => ({ ...f, riskLevel: 'all' }))}>×</button>
+                  </span>
+                )}
+                {filters.searchTerm && (
+                  <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full flex items-center gap-1">
+                    Search: "{filters.searchTerm}"
+                    <button onClick={() => setFilters(f => ({ ...f, searchTerm: '' }))}>×</button>
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="overflow-x-auto max-h-96">
+            <table className="min-w-full">
+              <thead className="bg-gray-50 sticky top-0">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Order ID</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Country</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Product</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Value ($)</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Weight (kg)</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Value/kg</th>
+                  <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Risk Score</th>
+                  <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredOrders.slice(0, 100).map((order, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50 border-b border-gray-100">
+                    <td className="px-4 py-3 text-sm font-mono text-gray-900">{order.order_id}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">
+                      <span className="px-2 py-1 bg-gray-100 rounded text-xs font-medium">{order.country}</span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-700 max-w-xs truncate" title={order.product_keyword}>{order.product_keyword || '-'}</td>
+                    <td className="px-4 py-3 text-sm text-right text-gray-700">${order.declared_value?.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-sm text-right text-gray-700">{order.weight_kg?.toFixed(3)}</td>
+                    <td className="px-4 py-3 text-sm text-right text-gray-700">${order.value_per_kg?.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-sm text-center">
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        order.risk_score > 0.7 ? 'bg-red-100 text-red-700' :
+                        order.risk_score > 0.4 ? 'bg-yellow-100 text-yellow-700' :
                         'bg-green-100 text-green-700'
                       }`}>
-                        {(country.avg_risk * 100).toFixed(1)}%
+                        {(order.risk_score * 100).toFixed(1)}%
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-center">
+                      <span className={`px-2 py-1 rounded text-xs capitalize ${
+                        order.logistics_status === 'delivered' ? 'bg-green-100 text-green-700' :
+                        order.logistics_status === 'in_transit' ? 'bg-blue-100 text-blue-700' :
+                        order.logistics_status === 'customs_hold' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-red-100 text-red-700'
+                      }`}>
+                        {order.logistics_status?.replace('_', ' ')}
                       </span>
                     </td>
                   </tr>
@@ -532,6 +927,16 @@ function OverviewModule() {
               </tbody>
             </table>
           </div>
+
+          {filteredOrders.length === 0 && (
+            <div className="p-8 text-center text-gray-500">No records match your filters. Try adjusting your criteria.</div>
+          )}
+
+          {filteredOrders.length > 100 && (
+            <div className="px-6 py-3 bg-gray-50 text-center text-sm text-gray-500">
+              Showing first 100 of {filteredOrders.length} records. Use filters to narrow down.
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -539,14 +944,14 @@ function OverviewModule() {
 }
 
 // ==========================================
-// ProcurementModule - 完整原始代码
+// ProcurementModule
 // ==========================================
 
 function ProcurementModule() {
   const [workflowState, setWorkflowState] = useState('analysis');
   const [isRunning, setIsRunning] = useState(false);
   const [selectedScenario, setSelectedScenario] = useState<any>(null);
-  const [suppliers, setSuppliers] = useState(supplierData);
+  const [suppliers, setSuppliers] = useState<Supplier[]>(supplierData);
   const [negotiationRound, setNegotiationRound] = useState(0);
   const [executionProgress, setExecutionProgress] = useState(0);
 
@@ -614,19 +1019,18 @@ function ProcurementModule() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Workflow Progress */}
       <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
         <div className="flex items-center justify-between relative">
-          {workflowSteps.map((step, i, arr) => (
+          {workflowSteps.map((step, index, arr) => (
             <React.Fragment key={step.key}>
-              <div className={`flex flex-col items-center gap-2 ${workflowState === step.key ? 'opacity-100' : getStepIndex(workflowState) > i ? 'opacity-100' : 'opacity-40'}`}>
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${workflowState === step.key ? 'bg-blue-600 text-white animate-pulse' : getStepIndex(workflowState) > i ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+              <div className={`flex flex-col items-center gap-2 ${workflowState === step.key ? 'opacity-100' : getStepIndex(workflowState) > index ? 'opacity-100' : 'opacity-40'}`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${workflowState === step.key ? 'bg-blue-600 text-white animate-pulse' : getStepIndex(workflowState) > index ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
                   <step.icon size={20} />
                 </div>
                 <span className="text-xs font-medium">{step.label}</span>
               </div>
-              {i < arr.length - 1 && (
-                <div className={`flex-1 h-0.5 mx-2 ${getStepIndex(workflowState) > i ? 'bg-green-500' : 'bg-gray-200'}`} />
+              {index < arr.length - 1 && (
+                <div className={`flex-1 h-0.5 mx-2 ${getStepIndex(workflowState) > index ? 'bg-green-500' : 'bg-gray-200'}`} />
               )}
             </React.Fragment>
           ))}
@@ -871,131 +1275,287 @@ function ProcurementModule() {
 }
 
 // ==========================================
-// ForecastModule - 完整原始代码
+// ForecastModule
+// ==========================================
+// ==========================================
+// API Functions (放在组件定义之前)
 // ==========================================
 
+const fetchForecastData = async () => {
+  try {
+    const response = await fetch('http://localhost:8000/api/forecast-analysis');
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    return data.forecasts || [];
+  } catch (error) {
+    console.error('Failed to fetch forecast data:', error);
+    return [];
+  }
+};
+// ==========================================
+// ForecastModule - AI Predict Center
+// ==========================================
 function ForecastModule() {
-  const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [tableData, setTableData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Table Filters
+  const [searchTerm, setSearchTerm] = useState('');
+  const [destFilter, setDestFilter] = useState('ALL');
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [weekFilter, setWeekFilter] = useState('ALL');
+
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      const rawData = await fetchForecastData();
+
+      const processedData = rawData.map(item => {
+        const name = item.client_full;
+        const maskedId = name.length > 2 ? `${name[0]}***${name[name.length - 1]}` : name;
+        const subId = name.length > 3 ? `${name.substring(0, 1)}***.` : name;
+
+        return {
+          ...item,
+          id: maskedId.toUpperCase(),
+          subId: subId.toUpperCase(),
+        };
+      });
+
+      setTableData(processedData);
+      setIsLoading(false);
+    };
+
+    loadData();
+  }, []);
+
+  const uniqueDests = Array.from(new Set(tableData.map(d => d.dest))).sort();
+  const uniqueCategories = Array.from(new Set(tableData.map(d => d.category))).sort();
+
+  const filteredData = useMemo(() => {
+    return tableData.filter(item => {
+      const matchSearch = item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          item.subId.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchDest = destFilter === 'ALL' || item.dest === destFilter;
+      const matchCategory = categoryFilter === 'ALL' || item.category === categoryFilter;
+      return matchSearch && matchDest && matchCategory;
+    });
+  }, [tableData, searchTerm, destFilter, categoryFilter]);
+
+  // 图表数据 - 按目的地聚合
+  const chartData = useMemo(() => {
+    const grouped = {};
+    filteredData.forEach(item => {
+      if (!grouped[item.dest]) {
+        grouped[item.dest] = { name: item.dest, volume: 0, weight: 0, count: 0 };
+      }
+      grouped[item.dest].volume += item.w1.v + item.w2.v + item.w3.v + item.w4.v;
+      grouped[item.dest].weight += item.w1.w + item.w2.w + item.w3.w + item.w4.w;
+      grouped[item.dest].count += 1;
+    });
+    return Object.values(grouped).slice(0, 10); // 最多显示10个目的地
+  }, [filteredData]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
-            <Calendar size={24} />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-slate-800">4-Week Forecast</h2>
-            <p className="text-sm text-slate-500">AI predictions • Auto anomaly detection • One-click intervention</p>
-          </div>
+
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100 shadow-sm">
+        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <Target size={18} className="text-blue-600" />
+          Model Performance Review
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <StatCard title="Overall WAPE" value="24.42%" color="text-blue-600" />
+          <StatCard title="Core Accounts (50+)" value="18.99%" color="text-green-600" />
+          <StatCard title="Head Accounts (21-50)" value="17.23%" color="text-amber-500" />
+          <StatCard title="Monthly Cumulative Error" value="10.3%" color="text-purple-600" />
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50">
-          <Download size={16} /> Export All
-        </button>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead>
-              <tr>
-                <TableHeader>Client</TableHeader>
-                <TableHeader>Health/Risk</TableHeader>
-                <TableHeader>Destination</TableHeader>
-                <TableHeader align="right">W+1 (06/08)</TableHeader>
-                <TableHeader align="right">W+2 (06/15)</TableHeader>
-                <TableHeader align="right">W+3 (06/22)</TableHeader>
-                <TableHeader align="right">W+4 (06/29)</TableHeader>
-                <TableHeader align="center">Trend</TableHeader>
-                <TableHeader align="center">Action</TableHeader>
-              </tr>
-            </thead>
-            <tbody>
-              {clientData.map((row, idx) => {
-                const trend = (row.w4Vol - row.w1Vol) / row.w1Vol;
-                const isDeclining = trend < -0.05;
-                return (
-                  <tr key={idx} className={`hover:bg-blue-50 ${isDeclining ? 'bg-red-50/30' : ''}`}>
-                    <TableCell><span className="font-bold text-gray-900">{row.id}</span></TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs font-bold px-2 py-1 rounded ${row.healthScore > 80 ? 'bg-green-100 text-green-700' : row.healthScore > 60 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>{row.healthScore}</span>
-                        {row.churnRisk !== 'LOW' && <span className={`text-xs px-2 py-1 rounded ${row.churnRisk === 'CRITICAL' ? 'bg-red-600 text-white' : 'bg-amber-500 text-white'}`}>{row.churnRisk}</span>}
-                      </div>
-                    </TableCell>
-                    <TableCell><span className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-1 rounded">{row.dest}</span></TableCell>
-                    <TableCell align="right"><div className="text-blue-700 font-medium">{row.w1Vol.toLocaleString()}</div><div className="text-xs text-emerald-600">{row.w1Wt.toLocaleString()}kg</div></TableCell>
-                    <TableCell align="right"><div className="text-blue-700 font-medium">{row.w2Vol.toLocaleString()}</div><div className="text-xs text-emerald-600">{row.w2Wt.toLocaleString()}kg</div></TableCell>
-                    <TableCell align="right"><div className="text-blue-700 font-medium">{row.w3Vol.toLocaleString()}</div><div className="text-xs text-emerald-600">{row.w3Wt.toLocaleString()}kg</div></TableCell>
-                    <TableCell align="right"><div className={`font-medium ${isDeclining ? 'text-red-600' : 'text-blue-700'}`}>{row.w4Vol.toLocaleString()}</div><div className="text-xs text-emerald-600">{row.w4Wt.toLocaleString()}kg</div></TableCell>
-                    <TableCell align="center">
-                      <div className={`flex items-center justify-center gap-1 ${trend > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                        {trend > 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                        <span className="text-xs font-bold">{(trend * 100).toFixed(1)}%</span>
-                      </div>
-                    </TableCell>
-                    <TableCell align="center">
-                      <button onClick={() => setSelectedClient(row)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><ArrowRight size={16} /></button>
-                    </TableCell>
+      <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+        <h3 className="font-bold text-slate-800 text-lg mb-6">Overall 4-Week Trend by Destination</h3>
+        <div className="h-72 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
+              <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+              <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+              <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+              <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '12px' }} />
+              <Bar yAxisId="left" dataKey="volume" name="Volume (Pieces)" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={40} />
+              <Line yAxisId="right" type="monotone" dataKey="weight" name="Weight (kg)" stroke="#8b5cf6" strokeWidth={3} dot={{ r: 4, fill: '#8b5cf6', strokeWidth: 2, stroke: '#fff' }} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden min-h-[400px] relative">
+
+        <div className="p-6 border-b border-gray-100 flex flex-col items-center gap-4">
+          <div className="flex items-center gap-2 text-slate-800 font-bold text-lg">
+            <Filter size={18} className="text-gray-500" />
+            4-Week Volume & Weight Forecast
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-3 w-full">
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search Client ID..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 pr-3 py-2 border border-gray-200 rounded-md text-sm focus:ring-1 focus:ring-blue-500 outline-none w-48"
+              />
+            </div>
+
+            <div className="relative">
+              <select
+                value={destFilter}
+                onChange={(e) => setDestFilter(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-2 border border-gray-200 rounded-md text-sm bg-white focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer max-w-[160px] truncate"
+              >
+                <option value="ALL">All Destinations</option>
+                {uniqueDests.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+              <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
+
+            <div className="relative">
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-2 border border-gray-200 rounded-md text-sm bg-white focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer max-w-[180px] truncate"
+              >
+                <option value="ALL">All Categories</option>
+                {uniqueCategories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
+
+            <div className="relative">
+              <select
+                value={weekFilter}
+                onChange={(e) => setWeekFilter(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-2 border border-gray-200 rounded-md text-sm bg-white focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer"
+              >
+                <option value="ALL">Show All 4 Weeks</option>
+                <option value="W1">Week +1 Only</option>
+                <option value="W2">Week +2 Only</option>
+                <option value="W3">Week +3 Only</option>
+                <option value="W4">Week +4 Only</option>
+              </select>
+              <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
+
+            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-sm rounded-md text-gray-700 hover:bg-gray-50 transition-colors">
+              <Download size={14} /> Export CSV
+            </button>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 z-10 mt-32">
+            <Loader2 className="animate-spin text-blue-600 mb-2" size={32} />
+            <p className="text-sm text-gray-500">Loading forecast data from server...</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Client / Customer</th>
+                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Destination</th>
+                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Category</th>
+
+                  {(weekFilter === 'ALL' || weekFilter === 'W1') && (
+                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center bg-blue-50/30">
+                      <div className="text-blue-600">Week +1</div>
+                      <div className="font-normal mt-0.5">Vol / Wt (kg)</div>
+                    </th>
+                  )}
+                  {(weekFilter === 'ALL' || weekFilter === 'W2') && (
+                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">
+                      <div className="text-gray-500">Week +2</div>
+                      <div className="font-normal mt-0.5">Vol / Wt (kg)</div>
+                    </th>
+                  )}
+                  {(weekFilter === 'ALL' || weekFilter === 'W3') && (
+                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">
+                      <div className="text-gray-500">Week +3</div>
+                      <div className="font-normal mt-0.5">Vol / Wt (kg)</div>
+                    </th>
+                  )}
+                  {(weekFilter === 'ALL' || weekFilter === 'W4') && (
+                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">
+                      <div className="text-gray-500">Week +4</div>
+                      <div className="font-normal mt-0.5">Vol / Wt (kg)</div>
+                    </th>
+                  )}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filteredData.map((row, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-5">
+                      <div className="font-bold text-slate-800">{row.id}</div>
+                      <div className="text-sm text-gray-400 mt-0.5">{row.subId}</div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <span className="inline-flex items-center justify-center px-2 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded">
+                        {row.dest}
+                      </span>
+                    </td>
+                    <td className="px-6 py-5 text-sm text-gray-600 max-w-[200px] truncate" title={row.category}>
+                      {row.category}
+                    </td>
+
+                    {(weekFilter === 'ALL' || weekFilter === 'W1') && (
+                      <td className="px-6 py-5 text-center bg-blue-50/10">
+                        <div className="font-bold text-blue-600">{row.w1.v}</div>
+                        <div className="text-sm text-gray-500 mt-0.5">{row.w1.w.toFixed(2)}</div>
+                      </td>
+                    )}
+                    {(weekFilter === 'ALL' || weekFilter === 'W2') && (
+                      <td className="px-6 py-5 text-center">
+                        <div className="font-bold text-slate-800">{row.w2.v}</div>
+                        <div className="text-sm text-gray-500 mt-0.5">{row.w2.w.toFixed(2)}</div>
+                      </td>
+                    )}
+                    {(weekFilter === 'ALL' || weekFilter === 'W3') && (
+                      <td className="px-6 py-5 text-center">
+                        <div className="font-bold text-slate-800">{row.w3.v}</div>
+                        <div className="text-sm text-gray-500 mt-0.5">{row.w3.w.toFixed(2)}</div>
+                      </td>
+                    )}
+                    {(weekFilter === 'ALL' || weekFilter === 'W4') && (
+                      <td className="px-6 py-5 text-center">
+                        <div className="font-bold text-slate-800">{row.w4.v}</div>
+                        <div className="text-sm text-gray-500 mt-0.5">{row.w4.w.toFixed(2)}</div>
+                      </td>
+                    )}
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                ))}
+                {filteredData.length === 0 && (
+                  <tr>
+                    <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
+                      No data found matching your filters.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      {selectedClient && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-              <div>
-                <h3 className="text-xl font-bold text-slate-800">{selectedClient.id} Analysis</h3>
-                <p className="text-sm text-slate-500">Destination: {selectedClient.dest}</p>
-              </div>
-              <button onClick={() => setSelectedClient(null)} className="p-2 hover:bg-gray-100 rounded-lg"><XCircle size={20} /></button>
-            </div>
-            <div className="p-6">
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="p-4 bg-blue-50 rounded-lg text-center">
-                  <div className="text-2xl font-bold text-blue-700">{selectedClient.healthScore}</div>
-                  <div className="text-xs text-blue-600">Health Score</div>
-                </div>
-                <div className="p-4 bg-purple-50 rounded-lg text-center">
-                  <div className="text-2xl font-bold text-purple-700">{(selectedClient.w4Vol / 1000).toFixed(1)}K</div>
-                  <div className="text-xs text-purple-600">W+4 Forecast</div>
-                </div>
-                <div className="p-4 bg-green-50 rounded-lg text-center">
-                  <div className="text-2xl font-bold text-green-700">94.2%</div>
-                  <div className="text-xs text-green-600">Hist. Accuracy</div>
-                </div>
-              </div>
-              <h4 className="font-bold text-slate-800 mb-3">AI Recommended Actions</h4>
-              <div className="space-y-2">
-                {(selectedClient.churnRisk === 'CRITICAL' ? [
-                  { icon: Phone, text: 'Schedule VP-level client visit', urgent: true },
-                  { icon: Target, text: 'Dedicated capacity guarantee plan', urgent: true },
-                ] : selectedClient.churnRisk === 'HIGH' ? [
-                  { icon: MessageSquare, text: 'Weekly sync with account manager', urgent: false },
-                ] : [
-                  { icon: Award, text: 'Recommend VIP program', urgent: false },
-                ]).map((action: any, i: number) => (
-                  <div key={i} className={`flex items-center gap-3 p-3 rounded-lg ${action.urgent ? 'bg-red-50 border border-red-200' : 'bg-gray-50'}`}>
-                    <action.icon size={18} className={action.urgent ? 'text-red-500' : 'text-gray-500'} />
-                    <span className={action.urgent ? 'text-red-800 font-medium' : 'text-gray-700'}>{action.text}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
 // ==========================================
-// BusinessValueDemo - 完整原始代码
+// BusinessValueDemo
 // ==========================================
 
 function BusinessValueDemo() {
