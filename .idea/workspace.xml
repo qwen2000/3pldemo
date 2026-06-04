@@ -5,12 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fd4532f7-f2ae-40ca-b698-de25a5d447f2" name="更改" comment="1.0">
-      <change afterPath="$PROJECT_DIR$/backend/forecast_processor.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/data_loader.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/data_loader.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/forecast_processor.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/forecast_processor.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/App.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/hooks/useRealData.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/hooks/useRealData.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -28,7 +25,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="v1.2" />
+        <entry key="$PROJECT_DIR$" value="v1.1" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -47,15 +44,15 @@
       <entry key="S30" value="1.0" />
       <entry key="S60" value="1.0" />
       <entry key="M2" value="1.0" />
-      <entry key="M5" value="1.0" />
-      <entry key="M10" value="1.0" />
-      <entry key="M15" value="1.0" />
-      <entry key="M30" value="1.0000000000555165" />
-      <entry key="H1" value="1.0000166560991002" />
-      <entry key="H2" value="1.0091251680836897" />
-      <entry key="H4" value="1.2135982668754506" />
-      <entry key="D1" value="3.956243600911906" />
-      <entry key="W1" value="5.6383735645577415" />
+      <entry key="M5" value="1.0000000000000053" />
+      <entry key="M10" value="1.0000000722705609" />
+      <entry key="M15" value="1.000017350325115" />
+      <entry key="M30" value="1.0041653721462696" />
+      <entry key="H1" value="1.064540769323711" />
+      <entry key="H2" value="1.2563648564020684" />
+      <entry key="H4" value="1.6116904126738638" />
+      <entry key="D1" value="4.529331718913672" />
+      <entry key="W1" value="6.547144543401612" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
@@ -85,15 +82,15 @@
       <entry key="S30" value="0.9997920774647191" />
       <entry key="S60" value="0.9998960333278251" />
       <entry key="M2" value="0.9999480153127087" />
-      <entry key="M5" value="0.9999792058007856" />
-      <entry key="M10" value="0.9999896028463424" />
-      <entry key="M15" value="0.999993068552217" />
-      <entry key="M30" value="0.9999965343256111" />
-      <entry key="H1" value="1.0000149220182952" />
-      <entry key="H2" value="1.0091239704308883" />
-      <entry key="H4" value="1.2135939655281225" />
-      <entry key="D1" value="3.956234622267267" />
-      <entry key="W1" value="5.638371558538472" />
+      <entry key="M5" value="0.9999792058007909" />
+      <entry key="M10" value="0.9999896751161519" />
+      <entry key="M15" value="1.0000104187570693" />
+      <entry key="M30" value="1.0041618919803177" />
+      <entry key="H1" value="1.064538924540216" />
+      <entry key="H2" value="1.2563636857088003" />
+      <entry key="H4" value="1.611687811447181" />
+      <entry key="D1" value="4.529323636937302" />
+      <entry key="W1" value="6.547142559525093" />
     </decayedShown>
   </component>
   <component name="ProblemsViewState">
@@ -119,7 +116,7 @@
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
     "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "v1.1",
+    "git-widget-placeholder": "v1.3",
     "ignore.virus.scanning.warn.message": "true",
     "junie.onboarding.icon.badge.shown": "true",
     "last_opened_file_path": "C:/Users/user/OneDrive - lscm.hk/_Transformer_Proj/3pl-dashboard/frontend/src",
@@ -155,7 +152,7 @@
       <option name="presentableId" value="Default" />
       <updated>1780385190184</updated>
       <workItem from="1780385191238" duration="8137000" />
-      <workItem from="1780450873474" duration="23092000" />
+      <workItem from="1780450873474" duration="24180000" />
     </task>
     <task id="LOCAL-00001" summary="1.0">
       <option name="closed" value="true" />
@@ -173,7 +170,15 @@
       <option name="project" value="LOCAL" />
       <updated>1780393284618</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="1.0">
+      <option name="closed" value="true" />
+      <created>1780552505576</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1780552505577</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

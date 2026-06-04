@@ -1277,279 +1277,269 @@ function ProcurementModule() {
 // ==========================================
 // ForecastModule
 // ==========================================
-// ==========================================
-// API Functions (放在组件定义之前)
-// ==========================================
 
-const fetchForecastData = async () => {
-  try {
-    const response = await fetch('http://localhost:8000/api/forecast-analysis');
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    const data = await response.json();
-    return data.forecasts || [];
-  } catch (error) {
-    console.error('Failed to fetch forecast data:', error);
-    return [];
-  }
-};
 // ==========================================
 // ForecastModule - AI Predict Center
 // ==========================================
+
 function ForecastModule() {
-  const [tableData, setTableData] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [workflowState, setWorkflowState] = useState('idle'); // idle, running, completed
+  const [isRunning, setIsRunning] = useState(false);
+  const [forecastData, setForecastData] = useState<any[]>([]);
+  const [performanceMetrics, setPerformanceMetrics] = useState<any>(null);
+  const [urgentGaps, setUrgentGaps] = useState<any[]>([]);
 
-  // Table Filters
-  const [searchTerm, setSearchTerm] = useState('');
-  const [destFilter, setDestFilter] = useState('ALL');
-  const [categoryFilter, setCategoryFilter] = useState('ALL');
-  const [weekFilter, setWeekFilter] = useState('ALL');
+  // 从 useRealDashboardData 获取数据
+  const { summary, loading: apiLoading } = useRealDashboardData();
 
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      const rawData = await fetchForecastData();
+  const handleRunAI = () => {
+    setIsRunning(true);
+    setWorkflowState('running');
 
-      const processedData = rawData.map(item => {
-        const name = item.client_full;
-        const maskedId = name.length > 2 ? `${name[0]}***${name[name.length - 1]}` : name;
-        const subId = name.length > 3 ? `${name.substring(0, 1)}***.` : name;
+    // 模拟 AI 运行
+    setTimeout(() => {
+      fetchForecastData();
+      setIsRunning(false);
+      setWorkflowState('completed');
+    }, 2000);
+  };
 
-        return {
-          ...item,
-          id: maskedId.toUpperCase(),
-          subId: subId.toUpperCase(),
-        };
-      });
+  const fetchForecastData = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/forecast-analysis');
+      const data = await response.json();
+      setForecastData(data.forecasts || []);
+      setPerformanceMetrics(data.performance || null);
 
-      setTableData(processedData);
-      setIsLoading(false);
-    };
+      // 筛选 urgent gaps (gap > 0 且按 gap 大小排序)
+      const urgent = (data.forecasts || [])
+        .filter((d: any) => d.gap > 0)
+        .sort((a: any, b: any) => b.gap - a.gap)
+        .slice(0, 5);
+      setUrgentGaps(urgent);
+    } catch (error) {
+      console.error('Failed to fetch forecast data:', error);
+    }
+  };
 
-    loadData();
-  }, []);
+  // 健康分数颜色
+  const getHealthColor = (score: number) => {
+    if (score >= 80) return 'bg-green-500';
+    if (score >= 60) return 'bg-amber-500';
+    return 'bg-red-500';
+  };
 
-  const uniqueDests = Array.from(new Set(tableData.map(d => d.dest))).sort();
-  const uniqueCategories = Array.from(new Set(tableData.map(d => d.category))).sort();
-
-  const filteredData = useMemo(() => {
-    return tableData.filter(item => {
-      const matchSearch = item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          item.subId.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchDest = destFilter === 'ALL' || item.dest === destFilter;
-      const matchCategory = categoryFilter === 'ALL' || item.category === categoryFilter;
-      return matchSearch && matchDest && matchCategory;
-    });
-  }, [tableData, searchTerm, destFilter, categoryFilter]);
-
-  // 图表数据 - 按目的地聚合
-  const chartData = useMemo(() => {
-    const grouped = {};
-    filteredData.forEach(item => {
-      if (!grouped[item.dest]) {
-        grouped[item.dest] = { name: item.dest, volume: 0, weight: 0, count: 0 };
-      }
-      grouped[item.dest].volume += item.w1.v + item.w2.v + item.w3.v + item.w4.v;
-      grouped[item.dest].weight += item.w1.w + item.w2.w + item.w3.w + item.w4.w;
-      grouped[item.dest].count += 1;
-    });
-    return Object.values(grouped).slice(0, 10); // 最多显示10个目的地
-  }, [filteredData]);
+  const getHealthTextColor = (score: number) => {
+    if (score >= 80) return 'text-green-600';
+    if (score >= 60) return 'text-amber-600';
+    return 'text-red-600';
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
 
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100 shadow-sm">
-        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-          <Target size={18} className="text-blue-600" />
-          Model Performance Review
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <StatCard title="Overall WAPE" value="24.42%" color="text-blue-600" />
-          <StatCard title="Core Accounts (50+)" value="18.99%" color="text-green-600" />
-          <StatCard title="Head Accounts (21-50)" value="17.23%" color="text-amber-500" />
-          <StatCard title="Monthly Cumulative Error" value="10.3%" color="text-purple-600" />
+      {/* AI Predict Center Header */}
+      <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg">
+            <Calendar size={24} />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-slate-800">AI Predict Center</h2>
+            <p className="text-sm text-slate-500">
+              4-week demand forecasting • WAPE validation • Capacity gap analysis
+            </p>
+          </div>
         </div>
+        <button
+          onClick={handleRunAI}
+          disabled={isRunning || workflowState === 'completed'}
+          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white text-sm font-medium rounded-md shadow-sm transition-all flex items-center gap-2"
+        >
+          {isRunning ? (
+            <><RefreshCw size={16} className="animate-spin" /> Running AI...</>
+          ) : workflowState === 'completed' ? (
+            <><CheckCircle size={16} /> Analysis Complete</>
+          ) : (
+            <><Play size={16} fill="currentColor" /> Run AI Engine</>
+          )}
+        </button>
       </div>
 
-      <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-        <h3 className="font-bold text-slate-800 text-lg mb-6">Overall 4-Week Trend by Destination</h3>
-        <div className="h-72 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
-              <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-              <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-              <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-              <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '12px' }} />
-              <Bar yAxisId="left" dataKey="volume" name="Volume (Pieces)" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={40} />
-              <Line yAxisId="right" type="monotone" dataKey="weight" name="Weight (kg)" stroke="#8b5cf6" strokeWidth={3} dot={{ r: 4, fill: '#8b5cf6', strokeWidth: 2, stroke: '#fff' }} />
-            </ComposedChart>
-          </ResponsiveContainer>
+      {/* Performance Metrics Card (显示模型性能) */}
+      {workflowState === 'completed' && performanceMetrics && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200">
+          <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <Target size={18} className="text-blue-600" />
+            Model Performance Review
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <div className="bg-white p-4 rounded-lg shadow-sm">
+              <div className="text-xs text-gray-500 uppercase">Overall WAPE</div>
+              <div className="text-2xl font-bold text-blue-600">{performanceMetrics.overall_wape}%</div>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow-sm">
+              <div className="text-xs text-gray-500 uppercase">Core Accounts (50+)</div>
+              <div className="text-2xl font-bold text-green-600">{performanceMetrics.core_wape}%</div>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow-sm">
+              <div className="text-xs text-gray-500 uppercase">Head Accounts (21-50)</div>
+              <div className="text-2xl font-bold text-amber-600">{performanceMetrics.head_wape}%</div>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow-sm">
+              <div className="text-xs text-gray-500 uppercase">Monthly Cumulative Error</div>
+              <div className="text-2xl font-bold text-purple-600">{performanceMetrics.monthly_error}%</div>
+            </div>
+          </div>
+
+          
         </div>
-      </div>
+      )}
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden min-h-[400px] relative">
+      {workflowState === 'completed' && (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
 
-        <div className="p-6 border-b border-gray-100 flex flex-col items-center gap-4">
-          <div className="flex items-center gap-2 text-slate-800 font-bold text-lg">
-            <Filter size={18} className="text-gray-500" />
-            4-Week Volume & Weight Forecast
+          {/* Main Table */}
+          <div className="lg:col-span-3">
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50/50">
+                <h3 className="font-bold text-gray-800">Capacity Gap & Client Health Analysis</h3>
+                <button className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-300 text-xs font-medium rounded text-gray-700 hover:bg-gray-50">
+                  <Download size={14} /> Export
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <TableHeader>Client ID</TableHeader>
+                      <TableHeader>Health</TableHeader>
+                      <TableHeader>Destination</TableHeader>
+                      <TableHeader align="right">AI Pred. (W+1)</TableHeader>
+                      <TableHeader align="right">Allocated Cap.</TableHeader>
+                      <TableHeader align="right">Gap</TableHeader>
+                      <TableHeader align="right">Recommendation</TableHeader>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {forecastData.map((row, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50 border-b border-gray-100">
+                        <TableCell>
+                          <span className="font-bold text-gray-900">{row.client_id}</span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-16 h-2 rounded-full ${getHealthColor(row.health_score)}`}
+                                 style={{ opacity: Math.max(0.3, row.health_score / 100) }} />
+                            <span className={`text-xs font-bold ${getHealthTextColor(row.health_score)}`}>
+                              {row.health_score}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-gray-500 text-xs">{row.destination}</span>
+                        </TableCell>
+                        <TableCell align="right">
+                          <span className="font-bold text-purple-700 bg-purple-50 px-2 py-1 rounded">
+                            {row.ai_pred_w1.toLocaleString()}
+                          </span>
+                        </TableCell>
+                        <TableCell align="right">
+                          {row.allocated_cap.toLocaleString()}
+                        </TableCell>
+                        <TableCell align="right">
+                          <span className={row.gap > 0 ? "text-red-600 font-bold" : "text-green-600"}>
+                            {row.gap > 0 ? `+${row.gap.toLocaleString()}` : '0'}
+                          </span>
+                        </TableCell>
+                        <TableCell align="right">
+                          {row.gap > 0 ? (
+                            <span className="font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded">
+                              Procure +{row.gap.toLocaleString()}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">Sufficient</span>
+                          )}
+                        </TableCell>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {forecastData.length === 0 && (
+                <div className="p-8 text-center text-gray-500">No forecast data available</div>
+              )}
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-3 w-full">
-            <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search Client ID..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 pr-3 py-2 border border-gray-200 rounded-md text-sm focus:ring-1 focus:ring-blue-500 outline-none w-48"
-              />
-            </div>
+          {/* Urgent Sidebar */}
+          <div className="space-y-4">
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <AlertTriangle size={18} className="text-red-500" />
+                <h3 className="font-bold text-slate-800">Urgent ({urgentGaps.length})</h3>
+              </div>
 
-            <div className="relative">
-              <select
-                value={destFilter}
-                onChange={(e) => setDestFilter(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-2 border border-gray-200 rounded-md text-sm bg-white focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer max-w-[160px] truncate"
-              >
-                <option value="ALL">All Destinations</option>
-                {uniqueDests.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-              <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            </div>
-
-            <div className="relative">
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-2 border border-gray-200 rounded-md text-sm bg-white focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer max-w-[180px] truncate"
-              >
-                <option value="ALL">All Categories</option>
-                {uniqueCategories.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            </div>
-
-            <div className="relative">
-              <select
-                value={weekFilter}
-                onChange={(e) => setWeekFilter(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-2 border border-gray-200 rounded-md text-sm bg-white focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer"
-              >
-                <option value="ALL">Show All 4 Weeks</option>
-                <option value="W1">Week +1 Only</option>
-                <option value="W2">Week +2 Only</option>
-                <option value="W3">Week +3 Only</option>
-                <option value="W4">Week +4 Only</option>
-              </select>
-              <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            </div>
-
-            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-sm rounded-md text-gray-700 hover:bg-gray-50 transition-colors">
-              <Download size={14} /> Export CSV
-            </button>
-          </div>
-        </div>
-
-        {isLoading ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 z-10 mt-32">
-            <Loader2 className="animate-spin text-blue-600 mb-2" size={32} />
-            <p className="text-sm text-gray-500">Loading forecast data from server...</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Client / Customer</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Destination</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Category</th>
-
-                  {(weekFilter === 'ALL' || weekFilter === 'W1') && (
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center bg-blue-50/30">
-                      <div className="text-blue-600">Week +1</div>
-                      <div className="font-normal mt-0.5">Vol / Wt (kg)</div>
-                    </th>
-                  )}
-                  {(weekFilter === 'ALL' || weekFilter === 'W2') && (
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">
-                      <div className="text-gray-500">Week +2</div>
-                      <div className="font-normal mt-0.5">Vol / Wt (kg)</div>
-                    </th>
-                  )}
-                  {(weekFilter === 'ALL' || weekFilter === 'W3') && (
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">
-                      <div className="text-gray-500">Week +3</div>
-                      <div className="font-normal mt-0.5">Vol / Wt (kg)</div>
-                    </th>
-                  )}
-                  {(weekFilter === 'ALL' || weekFilter === 'W4') && (
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">
-                      <div className="text-gray-500">Week +4</div>
-                      <div className="font-normal mt-0.5">Vol / Wt (kg)</div>
-                    </th>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filteredData.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-5">
-                      <div className="font-bold text-slate-800">{row.id}</div>
-                      <div className="text-sm text-gray-400 mt-0.5">{row.subId}</div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <span className="inline-flex items-center justify-center px-2 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded">
-                        {row.dest}
+              <div className="space-y-3">
+                {urgentGaps.map((g, i) => (
+                  <div key={i} className="p-3 bg-red-50 border border-red-100 rounded-md">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <div className="text-sm font-bold text-red-900">{g.client_id}</div>
+                        <div className="text-xs text-red-700">{g.destination}</div>
+                      </div>
+                      <span className="text-xs bg-red-200 text-red-800 px-2 py-0.5 rounded">
+                        +{g.gap.toLocaleString()}
                       </span>
-                    </td>
-                    <td className="px-6 py-5 text-sm text-gray-600 max-w-[200px] truncate" title={row.category}>
-                      {row.category}
-                    </td>
-
-                    {(weekFilter === 'ALL' || weekFilter === 'W1') && (
-                      <td className="px-6 py-5 text-center bg-blue-50/10">
-                        <div className="font-bold text-blue-600">{row.w1.v}</div>
-                        <div className="text-sm text-gray-500 mt-0.5">{row.w1.w.toFixed(2)}</div>
-                      </td>
-                    )}
-                    {(weekFilter === 'ALL' || weekFilter === 'W2') && (
-                      <td className="px-6 py-5 text-center">
-                        <div className="font-bold text-slate-800">{row.w2.v}</div>
-                        <div className="text-sm text-gray-500 mt-0.5">{row.w2.w.toFixed(2)}</div>
-                      </td>
-                    )}
-                    {(weekFilter === 'ALL' || weekFilter === 'W3') && (
-                      <td className="px-6 py-5 text-center">
-                        <div className="font-bold text-slate-800">{row.w3.v}</div>
-                        <div className="text-sm text-gray-500 mt-0.5">{row.w3.w.toFixed(2)}</div>
-                      </td>
-                    )}
-                    {(weekFilter === 'ALL' || weekFilter === 'W4') && (
-                      <td className="px-6 py-5 text-center">
-                        <div className="font-bold text-slate-800">{row.w4.v}</div>
-                        <div className="text-sm text-gray-500 mt-0.5">{row.w4.w.toFixed(2)}</div>
-                      </td>
-                    )}
-                  </tr>
+                    </div>
+                    <button className="w-full py-1.5 bg-red-600 text-white text-xs rounded hover:bg-red-700">
+                      Act Now
+                    </button>
+                  </div>
                 ))}
-                {filteredData.length === 0 && (
-                  <tr>
-                    <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
-                      No data found matching your filters.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
 
+                {urgentGaps.length === 0 && (
+                  <div className="text-center text-gray-400 text-sm py-4">No urgent gaps</div>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
+              <h3 className="font-bold text-slate-800 mb-3 text-sm">Forecast Summary</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Total Entities</span>
+                  <span className="font-medium">{forecastData.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">With Capacity Gap</span>
+                  <span className="font-medium text-red-600">
+                    {forecastData.filter(d => d.gap > 0).length}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Total Gap Volume</span>
+                  <span className="font-medium">
+                    {forecastData.reduce((sum, d) => sum + Math.max(0, d.gap), 0).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {workflowState === 'idle' && (
+        <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
+          <Play size={48} className="mx-auto text-gray-400 mb-4" />
+          <h3 className="text-lg font-medium text-gray-600">Ready to Run AI Forecast</h3>
+          <p className="text-gray-500 mt-2">Click "Run AI Engine" to generate 4-week predictions and capacity analysis</p>
+        </div>
+      )}
     </div>
   );
 }

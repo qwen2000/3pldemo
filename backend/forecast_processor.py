@@ -42,44 +42,50 @@ class ForecastProcessor:
         logger.info(f"Loaded {len(self.df)} forecast records")
 
     def get_forecast_analysis(self) -> List[Dict]:
-        """Generate forecast data with all 4 weeks in frontend format"""
+        """Generate capacity gap analysis for each entity"""
         results = []
 
         for _, row in self.df.iterrows():
-            # 提取客户全名用于mask
-            client_full = row['client_full']
+            # Simulate AI prediction (W+1)
+            ai_pred = row['Week +1_Vol']
+
+            # Simulate allocated capacity (80% of prediction as baseline)
+            allocated_cap = ai_pred * 0.8
+
+            # Calculate gap
+            gap = max(0, ai_pred - allocated_cap)
+
+            # Calculate health score based on forecast trend
+            w1, w2, w3, w4 = row['Week +1_Vol'], row['Week +2_Vol'], row['Week +3_Vol'], row['Week +4_Vol']
+            trend = (w4 - w1) / max(w1, 1) if w1 > 0 else 0
+
+            # Health score: 0-100, higher is better
+            if trend > 0.1:
+                health_score = 85 + min(15, trend * 50)  # Growing
+            elif trend > -0.1:
+                health_score = 70 + np.random.randint(10, 20)  # Stable
+            else:
+                health_score = max(40, 60 + trend * 100)  # Declining
 
             results.append({
                 'entity_id': row['Entity_ID'],
-                'client_full': client_full,
-                'dest': row['destination'],
+                'client_id': row['client_id'],
+                'client_full': row['client_full'],
+                'destination': row['destination'],
                 'category': row['Category'],
-                # Week data as objects matching frontend format
-                'w1': {
-                    'v': round(row['Week +1_Vol'], 1),
-                    'w': round(row['Week +1_Wt'], 2)
-                },
-                'w2': {
-                    'v': round(row['Week +2_Vol'], 1),
-                    'w': round(row['Week +2_Wt'], 2)
-                },
-                'w3': {
-                    'v': round(row['Week +3_Vol'], 1),
-                    'w': round(row['Week +3_Wt'], 2)
-                },
-                'w4': {
-                    'v': round(row['Week +4_Vol'], 1),
-                    'w': round(row['Week +4_Wt'], 2)
-                },
-                # 保留原始字段兼容性
-                'ai_pred_w1': round(row['Week +1_Vol'], 1),
+                'ai_pred_w1': round(ai_pred, 1),
                 'ai_pred_w2': round(row['Week +2_Vol'], 1),
                 'ai_pred_w3': round(row['Week +3_Vol'], 1),
                 'ai_pred_w4': round(row['Week +4_Vol'], 1),
+                'allocated_cap': round(allocated_cap, 1),
+                'gap': round(gap, 1),
+                'health_score': round(health_score),
                 'total_4wk_vol': round(row['total_4wk_vol'], 1),
                 'total_4wk_wt': round(row['total_4wk_wt'], 2),
             })
 
+        # Sort by gap descending
+        results.sort(key=lambda x: x['gap'], reverse=True)
         return results
 
     def get_performance_metrics(self) -> Dict:
