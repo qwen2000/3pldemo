@@ -1,0 +1,118 @@
+# ==========================================
+# 更新后的 startup_event 函数
+# 添加到你的 main.py 中
+# ==========================================
+
+# 在文件顶部添加 import
+from operation_analyzer import OperationAnalyzer
+
+# Global instance for operation analyzer
+operation_analyzer = None
+
+def init_operation_analyzer(forecast_csv: str, weekly_csv: str = None):
+    """Initialize operation analyzer"""
+    global operation_analyzer
+    try:
+        operation_analyzer = OperationAnalyzer(
+            forecast_csv_path=forecast_csv,
+            weekly_csv_path=weekly_csv
+        )
+        logger.info(f"Operation analyzer initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize operation analyzer: {e}")
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize forecast processor and operation analyzer on startup"""
+    # Try multiple possible paths for forecast CSV
+    possible_paths_forecast = [
+        # Path relative to main.py location
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', '3PL_Final_Forecast_Report.csv'),
+        # Path relative to current working directory
+        os.path.join(os.getcwd(), 'data', '3PL_Final_Forecast_Report.csv'),
+        # Direct path if running from backend folder
+        os.path.join(os.getcwd(), '..', 'data', '3PL_Final_Forecast_Report.csv'),
+        # Absolute path construction
+        os.path.abspath(os.path.join('..', 'data', '3PL_Final_Forecast_Report.csv')),
+    ]
+
+    # Try multiple possible paths for weekly CSV
+    possible_paths_weekly = [
+        # Path relative to main.py location
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', '3pl_weekly_aggregated.csv'),
+        # Path relative to current working directory
+        os.path.join(os.getcwd(), 'data', '3pl_weekly_aggregated.csv'),
+        # Direct path if running from backend folder
+        os.path.join(os.getcwd(), '..', 'data', '3pl_weekly_aggregated.csv'),
+        # Absolute path construction
+        os.path.abspath(os.path.join('..', 'data', '3pl_weekly_aggregated.csv')),
+    ]
+
+    # Find forecast CSV
+    forecast_csv = None
+    for path in possible_paths_forecast:
+        normalized = os.path.normpath(path)
+        logger.info(f"Checking: {normalized} -> exists: {os.path.exists(normalized)}")
+        if os.path.exists(normalized):
+            forecast_csv = normalized
+            break
+
+    # Find weekly CSV (optional)
+    weekly_csv = None
+    for path in possible_paths_weekly:
+        normalized = os.path.normpath(path)
+        if os.path.exists(normalized):
+            weekly_csv = normalized
+            logger.info(f"Found weekly CSV: {normalized}")
+            break
+
+    if not weekly_csv:
+        logger.warning("Weekly aggregated CSV not found (optional)")
+
+    # Initialize modules
+    if forecast_csv:
+        try:
+            # Initialize forecast processor (原有的)
+            fp_module.init_forecast_processor(forecast_csv)
+            logger.info(f"Forecast processor initialized with: {forecast_csv}")
+
+            # Initialize operation analyzer (新增的)
+            init_operation_analyzer(forecast_csv, weekly_csv)
+
+        except Exception as e:
+            logger.error(f"Failed to initialize modules: {e}")
+    else:
+        logger.error("Forecast CSV not found in any of the searched locations")
+        logger.info(f"Current working directory: {os.getcwd()}")
+        logger.info(f"Script directory: {os.path.dirname(os.path.abspath(__file__))}")
+
+
+# ==========================================
+# 添加新的 API endpoint
+# ==========================================
+
+@app.get("/api/operation-analysis")
+async def get_operation_analysis():
+    """
+    Get AI-driven operation analysis including capacity gaps,
+    urgent actions, anomalies, and insights
+    """
+    if not operation_analyzer:
+        raise HTTPException(status_code=500, detail="Operation analyzer not initialized")
+
+    try:
+        capacity_gap_analysis = operation_analyzer.get_capacity_gap_analysis()
+        urgent_actions = operation_analyzer.get_urgent_actions(top_n=10)
+        anomalies = operation_analyzer.get_anomalies()
+        insights = operation_analyzer.get_insights()
+
+        return {
+            "capacity_gap_analysis": capacity_gap_analysis,
+            "urgent_actions": urgent_actions,
+            "anomalies": anomalies,
+            "insights": insights,
+        }
+    except Exception as e:
+        logger.error(f"Error getting operation analysis: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

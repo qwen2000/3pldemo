@@ -7,7 +7,7 @@ import {
   Zap, TrendingDown, Users, DollarSign,
   ChevronRight, ChevronLeft, Pause,
   MessageSquare, Phone, Mail, Award, Target,
-  Search, ChevronDown, Loader2, AlertCircle,
+  Search, ChevronDown, Loader2, AlertCircle, BarChart3,
 } from 'lucide-react';
 import {
   Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -154,7 +154,7 @@ function App() {
           <nav className="flex space-x-1 bg-gray-100 p-1 rounded-lg overflow-x-auto">
 <NavButton id="overview" label="Market Overview" icon={Activity} active={activeTab} onClick={setActiveTab} />
 <NavButton id="forecast" label="4-Week Forecast" icon={Calendar} active={activeTab} onClick={setActiveTab} />
-<NavButton id="procurement" label="Procurement Plan" icon={ShoppingCart} active={activeTab} onClick={setActiveTab} />
+<NavButton id="operation" label="Operation Plan" icon={TrendingUp} active={activeTab} onClick={setActiveTab} />
 <NavButton id="demo" label="Business Value Demo" icon={Play} active={activeTab} onClick={setActiveTab} />
           </nav>
         </div>
@@ -185,7 +185,7 @@ function App() {
       <main className="max-w-7xl mx-auto p-6">
         {activeTab === 'overview' && <OverviewModule />}
         {activeTab === 'forecast' && <ForecastModule />}
-        {activeTab === 'procurement' && <ProcurementModule />}
+        {activeTab === 'operation' && <OperationPlanModule />}
         {activeTab === 'demo' && <BusinessValueDemo />}
       </main>
     </div>
@@ -982,332 +982,562 @@ function OverviewModule() {
 }
 
 // ==========================================
-// ProcurementModule
+// Operation Plan Module - AI-Driven Operational Insights
 // ==========================================
 
-function ProcurementModule() {
-  const [workflowState, setWorkflowState] = useState('analysis');
+function OperationPlanModule() {
+  const [workflowState, setWorkflowState] = useState('idle');
   const [isRunning, setIsRunning] = useState(false);
-  const [selectedScenario, setSelectedScenario] = useState<any>(null);
-  const [suppliers, setSuppliers] = useState<Supplier[]>(supplierData);
-  const [negotiationRound, setNegotiationRound] = useState(0);
-  const [executionProgress, setExecutionProgress] = useState(0);
 
-  const urgentGaps = procurementData.filter(d => d.gap > 0).sort((a, b) => b.gap - a.gap);
-  const dropWarnings = procurementData.filter(d => d.declineRate < -0.1).sort((a, b) => a.declineRate - b.declineRate);
+  const [capacityGapData, setCapacityGapData] = useState<any[]>([]);
+  const [urgentActions, setUrgentActions] = useState<any[]>([]);
+  const [anomalies, setAnomalies] = useState<any>(null);
+  const [insights, setInsights] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleRunAI = () => {
+  // Filters
+  const [searchTerm, setSearchTerm] = useState('');
+  const [destFilter, setDestFilter] = useState('ALL');
+  const [healthFilter, setHealthFilter] = useState('ALL');
+
+  // ==========================================
+  // Run Analysis Handler
+  // ==========================================
+  const handleRunAnalysis = async () => {
     setIsRunning(true);
-    setWorkflowState('analysis');
-    setTimeout(() => {
+    setWorkflowState('running');
+    setError(null);
+
+    // Simulate analysis processing
+    await new Promise(resolve => setTimeout(resolve, 2500));
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/operation-analysis`);
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      setCapacityGapData(data.capacity_gap_analysis || []);
+      setUrgentActions(data.urgent_actions || []);
+      setAnomalies(data.anomalies || null);
+      setInsights(data.insights || null);
+
+      setWorkflowState('completed');
+    } catch (err) {
+      console.error('Failed to run operation analysis:', err);
+      setError(err instanceof Error ? err.message : 'Failed to run analysis');
+      setWorkflowState('idle');
+    } finally {
       setIsRunning(false);
-      setWorkflowState('scenarios');
-    }, 2000);
+    }
   };
 
-  const startNegotiation = () => {
-    setWorkflowState('negotiating');
-    setNegotiationRound(1);
-    let round = 1;
-    const interval = setInterval(() => {
-      setSuppliers(prev => prev.map((s, i) => ({
-        ...s,
-        status: i < round ? 'responded' : 'waiting',
-        current: i < round ? Math.max(s.aiTarget, s.current - 0.15) : s.current,
-        responseTime: i < round ? `${Math.floor(Math.random() * 30 + 10)}min` : null
-      })));
-      round++;
-      if (round > 4) {
-        clearInterval(interval);
-        setWorkflowState('approved');
-      }
-      setNegotiationRound(round);
-    }, 1500);
+  // ==========================================
+  // Helper: Get health color
+  // ==========================================
+  const getHealthColor = (score: number) => {
+    if (score >= 80) return 'bg-green-500';
+    if (score >= 60) return 'bg-yellow-500';
+    if (score >= 40) return 'bg-orange-500';
+    return 'bg-red-500';
   };
 
-  const executePO = () => {
-    setWorkflowState('executing');
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += 10;
-      setExecutionProgress(progress);
-      if (progress >= 100) {
-        clearInterval(interval);
-        setWorkflowState('completed');
-      }
-    }, 300);
+  const getHealthTextColor = (score: number) => {
+    if (score >= 80) return 'text-green-600';
+    if (score >= 60) return 'text-yellow-600';
+    if (score >= 40) return 'text-orange-600';
+    return 'text-red-600';
   };
 
-  const scenarios = [
-    { id: 'A', name: 'Cost Priority', cost: 89200, time: '48h', risk: 'Medium', saving: 15800, color: 'blue' },
-    { id: 'B', name: 'Speed Priority', cost: 102400, time: '24h', risk: 'Low', saving: 5600, color: 'green' },
-    { id: 'C', name: 'Balanced', cost: 94800, time: '36h', risk: 'Low', saving: 10200, color: 'purple' },
-  ];
+  // ==========================================
+  // Filter Logic
+  // ==========================================
+  const uniqueDests = useMemo(() => {
+    return Array.from(new Set(capacityGapData.map(d => d.destination))).sort();
+  }, [capacityGapData]);
 
-  const workflowSteps = [
-    { key: 'analysis', label: 'AI Analysis', icon: Activity },
-    { key: 'scenarios', label: 'Scenarios', icon: Target },
-    { key: 'negotiating', label: 'Negotiation', icon: MessageSquare },
-    { key: 'approved', label: 'Approval', icon: CheckCircle },
-    { key: 'executing', label: 'Execution', icon: Truck },
-    { key: 'completed', label: 'Complete', icon: Award },
-  ];
+  const filteredData = useMemo(() => {
+    return capacityGapData.filter(item => {
+      const matchSearch =
+        item.client_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.client_full.toLowerCase().includes(searchTerm.toLowerCase());
 
-  const getStepIndex = (state: string) => workflowSteps.findIndex(s => s.key === state);
+      const matchDest = destFilter === 'ALL' || item.destination === destFilter;
 
+      const matchHealth =
+        healthFilter === 'ALL' ||
+        (healthFilter === 'HIGH' && item.health_score >= 80) ||
+        (healthFilter === 'MEDIUM' && item.health_score >= 60 && item.health_score < 80) ||
+        (healthFilter === 'LOW' && item.health_score < 60);
+
+      return matchSearch && matchDest && matchHealth;
+    });
+  }, [capacityGapData, searchTerm, destFilter, healthFilter]);
+
+  // ==========================================
+  // Render Error State
+  // ==========================================
+  if (error) {
+    return (
+      <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <AlertCircle size={24} className="text-red-600" />
+            <h3 className="text-lg font-bold text-red-800">Analysis Failed</h3>
+          </div>
+          <p className="text-red-700 mb-4">{error}</p>
+          <button
+            onClick={() => {
+              setError(null);
+              setWorkflowState('idle');
+            }}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // Render Idle State
+  // ==========================================
+  if (workflowState === 'idle') {
+    return (
+      <div className="space-y-6 animate-in fade-in duration-500">
+        {/* AI Operation Analysis Header */}
+        <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-8 rounded-xl border border-indigo-100 shadow-sm text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-full mb-4">
+            <TrendingUp size={32} className="text-indigo-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">AI Operation Analysis</h2>
+          <p className="text-slate-600 mb-6">
+            AI-driven capacity planning • Demand forecasting • Operational insights
+          </p>
+
+          <button
+            onClick={handleRunAnalysis}
+            disabled={isRunning}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white text-base font-semibold rounded-lg shadow-lg transition-all"
+          >
+            {isRunning ? (
+              <>
+                <RefreshCw size={20} className="animate-spin" />
+                Running Analysis...
+              </>
+            ) : (
+              <>
+                <Play size={20} fill="currentColor" />
+                Start Analysis
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Empty State */}
+        <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-12 text-center">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-200 rounded-full mb-4">
+            <BarChart3 size={40} className="text-gray-400" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-600 mb-2">Ready to Analyze Operations</h3>
+          <p className="text-gray-500">Click "Start Analysis" to generate capacity gap insights and recommendations</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // Render Running State
+  // ==========================================
+  if (workflowState === 'running') {
+    return (
+      <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="bg-white p-8 rounded-xl border border-indigo-200 shadow-sm">
+          <div className="flex flex-col items-center justify-center">
+            <Loader2 className="animate-spin text-indigo-600 mb-4" size={48} />
+            <h3 className="text-xl font-bold text-slate-800 mb-2">Analyzing Operations...</h3>
+            <p className="text-slate-500">Processing demand forecasts and capacity constraints</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // Render Completed State (Main Dashboard)
+  // ==========================================
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-        <div className="flex items-center justify-between relative">
-          {workflowSteps.map((step, index, arr) => (
-            <React.Fragment key={step.key}>
-              <div className={`flex flex-col items-center gap-2 ${workflowState === step.key ? 'opacity-100' : getStepIndex(workflowState) > index ? 'opacity-100' : 'opacity-40'}`}>
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${workflowState === step.key ? 'bg-blue-600 text-white animate-pulse' : getStepIndex(workflowState) > index ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
-                  <step.icon size={20} />
-                </div>
-                <span className="text-xs font-medium">{step.label}</span>
-              </div>
-              {index < arr.length - 1 && (
-                <div className={`flex-1 h-0.5 mx-2 ${getStepIndex(workflowState) > index ? 'bg-green-500' : 'bg-gray-200'}`} />
-              )}
-            </React.Fragment>
-          ))}
+
+      {/* Header with Re-run Button */}
+      <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg">
+            <TrendingUp size={24} />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-slate-800">AI Operation Analysis</h2>
+            <p className="text-sm text-slate-500">
+              Capacity planning & demand insights • Analysis complete
+            </p>
+          </div>
         </div>
+        <button
+          onClick={handleRunAnalysis}
+          disabled={isRunning}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-100 disabled:bg-gray-100 disabled:text-gray-400"
+        >
+          {isRunning ? (
+            <><RefreshCw size={16} className="animate-spin" /> Re-running...</>
+          ) : (
+            <><RefreshCw size={16} /> Re-run Analysis</>
+          )}
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3 space-y-6">
-          <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
-                  <ShoppingCart size={24} />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-slate-800">AI Procurement Center</h2>
-                  <p className="text-sm text-slate-500">End-to-end AI-driven procurement • Avg decision time: 18 min</p>
-                </div>
+      {/* Summary Metrics */}
+      {insights && insights.summary && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <StatCard
+            title="Total Capacity Gap"
+            value={`+${insights.summary.total_gap.toLocaleString()}`}
+            color="text-red-600"
+          />
+          <StatCard
+            title="Predicted Volume (W+1)"
+            value={insights.summary.total_predicted_vol.toLocaleString()}
+            color="text-blue-600"
+          />
+          <StatCard
+            title="Avg Health Score"
+            value={`${insights.summary.avg_health_score}/100`}
+            color="text-green-600"
+          />
+          <StatCard
+            title="Allocation Coverage"
+            value={`${insights.summary.utilization_pct}%`}
+            color="text-purple-600"
+          />
+        </div>
+      )}
+
+      {/* Main Content: 2-column layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* Left Column: Capacity Gap Table (2/3 width) */}
+        <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+
+          {/* Table Header with Filters */}
+          <div className="p-6 border-b border-gray-100">
+            <h3 className="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
+              <Activity size={18} className="text-indigo-600" />
+              Capacity Gap & Client Health Analysis
+            </h3>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Search */}
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search Client..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 pr-3 py-2 border border-gray-200 rounded-md text-sm focus:ring-1 focus:ring-indigo-500 outline-none w-48"
+                />
               </div>
-              <button
-                onClick={handleRunAI}
-                disabled={isRunning || workflowState !== 'analysis'}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white text-sm font-medium rounded-md shadow-sm transition-all flex items-center gap-2"
-              >
-                {isRunning ? <><RefreshCw size={16} className="animate-spin" /> Analyzing...</> : <><Play size={16} fill="currentColor" /> Run AI Engine</>}
-              </button>
+
+              {/* Destination Filter */}
+              <div className="relative">
+                <select
+                  value={destFilter}
+                  onChange={(e) => setDestFilter(e.target.value)}
+                  className="appearance-none pl-3 pr-8 py-2 border border-gray-200 rounded-md text-sm bg-white focus:ring-1 focus:ring-indigo-500 outline-none cursor-pointer"
+                >
+                  <option value="ALL">All Destinations</option>
+                  {uniqueDests.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+                <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              </div>
+
+              {/* Health Filter */}
+              <div className="relative">
+                <select
+                  value={healthFilter}
+                  onChange={(e) => setHealthFilter(e.target.value)}
+                  className="appearance-none pl-3 pr-8 py-2 border border-gray-200 rounded-md text-sm bg-white focus:ring-1 focus:ring-indigo-500 outline-none cursor-pointer"
+                >
+                  <option value="ALL">All Health Levels</option>
+                  <option value="HIGH">High (80+)</option>
+                  <option value="MEDIUM">Medium (60-79)</option>
+                  <option value="LOW">Low (&lt;60)</option>
+                </select>
+                <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              </div>
             </div>
           </div>
 
-          {workflowState === 'scenarios' && (
-            <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-              <h3 className="font-bold text-slate-800 mb-4">AI-Generated Procurement Strategies</h3>
-              <div className="grid grid-cols-3 gap-4">
-                {scenarios.map(s => (
-                  <button
-                    key={s.id}
-                    onClick={() => setSelectedScenario(s)}
-                    className={`p-4 rounded-lg border-2 text-left transition-all ${selectedScenario?.id === s.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}
-                  >
-                    <div className="text-lg font-bold text-blue-700 mb-2">{s.name}</div>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between"><span className="text-gray-500">Est. Cost</span><span className="font-bold">${s.cost.toLocaleString()}</span></div>
-                      <div className="flex justify-between"><span className="text-gray-500">Lead Time</span><span className="font-bold">{s.time}</span></div>
-                      <div className="flex justify-between"><span className="text-gray-500">Risk</span><span className="font-bold text-green-600">{s.risk}</span></div>
-                      <div className="pt-2 border-t">
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-500">Est. Savings</span>
-                          <span className="font-bold text-green-600 text-lg">${s.saving.toLocaleString()}</span>
+          {/* Table Content - Scrollable */}
+          <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+            <table className="min-w-full text-left">
+              <thead className="sticky top-0 bg-gray-50 z-10">
+                <tr className="border-b border-gray-100">
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase">Client</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase">Health</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase">Dest.</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase text-right">AI Pred. (W+1)</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase text-right">Allocated</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase text-right">Gap</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase">Recommendation</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 bg-white">
+                {filteredData.map((row, idx) => (
+                  <tr key={row.entity_id || idx} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-4 py-4">
+                      <div className="font-bold text-slate-800 text-sm">{row.client_id}</div>
+                      <div className="text-xs text-gray-400">{row.destination}</div>
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-12 bg-gray-200 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full ${getHealthColor(row.health_score)}`}
+                            style={{ width: `${row.health_score}%` }}
+                          />
                         </div>
+                        <span className={`text-sm font-bold ${getHealthTextColor(row.health_score)}`}>
+                          {row.health_score}
+                        </span>
                       </div>
-                    </div>
-                    {selectedScenario?.id === s.id && (
-                      <div className="mt-3 pt-3 border-t">
-                        <button onClick={startNegotiation} className="w-full py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700">
-                          Start Negotiation →
-                        </button>
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {workflowState === 'negotiating' && (
-            <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-              <h3 className="font-bold text-slate-800 mb-4">AI Negotiation in Progress • Round {Math.min(negotiationRound, 4)}/4</h3>
-              <div className="space-y-3">
-                {suppliers.map((s, i) => (
-                  <div key={s.name} className={`p-4 rounded-lg border ${s.status === 'responded' ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${s.status === 'responded' ? 'bg-green-500 text-white' : 'bg-gray-300'}`}>
-                          {s.status === 'responded' ? <CheckCircle size={16} /> : <Clock size={16} />}
-                        </div>
-                        <div>
-                          <div className="font-bold text-slate-800">{s.name}</div>
-                          <div className="text-xs text-slate-500">Reliability: {s.reliability}%</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-6">
-                        <div className="text-right">
-                          <div className="text-xs text-slate-500">Initial</div>
-                          <div className="line-through text-slate-400">${s.baseRate}</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xs text-slate-500">AI Target</div>
-                          <div className="text-purple-600 font-bold">${s.aiTarget}</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xs text-slate-500">Current</div>
-                          <div className={`font-bold text-lg ${s.current <= s.aiTarget ? 'text-green-600' : 'text-amber-600'}`}>${s.current.toFixed(2)}</div>
-                        </div>
-                        {s.responseTime && <div className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">{s.responseTime}</div>}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {negotiationRound > 4 && (
-                <div className="mt-4 p-4 bg-purple-50 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-bold text-purple-900">Negotiation Complete! Winner: DB Schenker</div>
-                      <div className="text-sm text-purple-700">Final rate $2.20 • 21.4% savings • Est. annual save: $127,500</div>
-                    </div>
-                    <button onClick={executePO} className="px-6 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700">
-                      Execute PO →
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {workflowState === 'executing' && (
-            <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-              <h3 className="font-bold text-slate-800 mb-4">Execution Tracking • Real-time Supplier Response</h3>
-              <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-                <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{ width: `${executionProgress}%` }} />
-              </div>
-              <div className="grid grid-cols-4 gap-4 text-center">
-                {['PO Confirmed', 'Capacity Locked', 'Pickup Scheduled', 'In Transit'].map((step, i) => (
-                  <div key={step} className={`p-3 rounded-lg ${executionProgress > (i + 1) * 25 ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-400'}`}>
-                    <div className="text-lg mb-1">{executionProgress > (i + 1) * 25 ? '✓' : '○'}</div>
-                    <div className="text-xs font-medium">{step}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {workflowState === 'completed' && (
-            <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-6 rounded-lg shadow-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-bold mb-2 flex items-center gap-2"><Award size={24} /> Procurement Complete!</h3>
-                  <p className="text-green-100">Total time: 47 min • Cost saved: $23,400 • Supplier performance: 100%</p>
-                </div>
-                <button onClick={() => { setWorkflowState('analysis'); setSelectedScenario(null); setExecutionProgress(0); setSuppliers(supplierData); }} className="px-4 py-2 bg-white text-green-600 rounded-lg font-medium hover:bg-green-50">
-                  New Process
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50/50">
-              <h3 className="font-bold text-gray-800">Capacity Gap & Client Health Analysis</h3>
-              <button className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-300 text-xs font-medium rounded text-gray-700 hover:bg-gray-50">
-                <Download size={14} /> Export
-              </button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead>
-                  <tr>
-                    <TableHeader>Client ID</TableHeader>
-                    <TableHeader>Health</TableHeader>
-                    <TableHeader>Destination</TableHeader>
-                    <TableHeader align="right">AI Pred. (W+1)</TableHeader>
-                    <TableHeader align="right">Allocated Cap.</TableHeader>
-                    <TableHeader align="right">Gap</TableHeader>
-                    <TableHeader align="right">Recommendation</TableHeader>
-                    <TableHeader align="right">Churn Risk</TableHeader>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
+                        {row.destination}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 text-right">
+                      <div className="font-bold text-indigo-600">{row.ai_pred_w1.toLocaleString()}</div>
+                    </td>
+                    <td className="px-4 py-4 text-right">
+                      <div className="text-slate-700">{row.allocated_cap.toLocaleString()}</div>
+                    </td>
+                    <td className="px-4 py-4 text-right">
+                      {row.gap > 0 ? (
+                        <div className="font-bold text-red-600">+{row.gap.toLocaleString()}</div>
+                      ) : row.gap === 0 ? (
+                        <div className="font-bold text-green-600">0</div>
+                      ) : (
+                        <div className="font-bold text-blue-600">{row.gap.toLocaleString()}</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-4">
+                      {row.rec_type === 'sufficient' ? (
+                        <span className="text-green-600 text-sm font-medium">{row.recommendation}</span>
+                      ) : row.rec_type === 'surplus' ? (
+                        <span className="text-blue-600 text-sm font-medium">{row.recommendation}</span>
+                      ) : (
+                        <span className="text-indigo-600 text-sm font-medium">{row.recommendation}</span>
+                      )}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {procurementData.map((row, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50">
-                      <TableCell><span className="font-bold text-gray-900">{row.id}</span></TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className={`w-16 h-2 rounded-full ${row.healthScore > 80 ? 'bg-green-500' : row.healthScore > 60 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ opacity: row.healthScore / 100 }} />
-                          <span className={`text-xs font-bold ${row.healthScore > 80 ? 'text-green-600' : row.healthScore > 60 ? 'text-amber-600' : 'text-red-600'}`}>{row.healthScore}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell><span className="text-gray-500 text-xs">{row.dest}</span></TableCell>
-                      <TableCell align="right"><span className="font-bold text-purple-700 bg-purple-50 px-2 py-1 rounded">{row.w1Vol.toLocaleString()}</span></TableCell>
-                      <TableCell align="right">{row.currentCap.toLocaleString()}</TableCell>
-                      <TableCell align="right"><span className={row.gap > 0 ? "text-red-600 font-bold" : "text-green-600"}>{row.gap > 0 ? `+${row.gap.toLocaleString()}` : '0'}</span></TableCell>
-                      <TableCell align="right">{row.gap > 0 ? <span className="font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded">Procure +{row.gap.toLocaleString()}</span> : <span className="text-gray-400">Sufficient</span>}</TableCell>
-                      <TableCell align="right">{row.potentialLoss > 0 ? <span className="text-red-600 font-bold">${(row.potentialLoss / 1000000).toFixed(1)}M</span> : <span className="text-gray-400">-</span>}</TableCell>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
+
+          {/* Footer */}
+          {filteredData.length > 0 && (
+            <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-center text-sm text-gray-600">
+              Showing {filteredData.length} record{filteredData.length !== 1 ? 's' : ''}
+              {filteredData.length > 10 && ' (scroll to view more)'}
+            </div>
+          )}
         </div>
 
+        {/* Right Column: Insights (1/3 width) */}
         <div className="space-y-6">
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <AlertTriangle size={18} className="text-red-500" />
-              <h3 className="font-bold text-slate-800">Urgent ({urgentGaps.length})</h3>
-            </div>
-            <div className="space-y-3">
-              {urgentGaps.map((g, i) => (
-                <div key={i} className="p-3 bg-red-50 border border-red-100 rounded-md">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <div className="text-sm font-bold text-red-900">{g.id}</div>
-                      <div className="text-xs text-red-700">{g.dest}</div>
-                    </div>
-                    <span className="text-xs bg-red-200 text-red-800 px-2 py-0.5 rounded">+{g.gap.toLocaleString()}</span>
-                  </div>
-                  <button className="w-full py-1.5 bg-red-600 text-white text-xs rounded hover:bg-red-700">Act Now</button>
-                </div>
-              ))}
-            </div>
-          </div>
 
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <AlertOctagon size={18} className="text-amber-500" />
-              <h3 className="font-bold text-slate-800">Churn Risk ({dropWarnings.length})</h3>
-            </div>
-            <div className="space-y-3">
-              {dropWarnings.map((w, i) => (
-                <div key={i} className="p-3 bg-amber-50 border border-amber-100 rounded-md">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <div className="text-sm font-bold text-amber-900">{w.id}</div>
-                      <div className="text-xs text-amber-700">Health: {w.healthScore}</div>
-                    </div>
-                    <span className="text-sm font-bold text-amber-700">{(w.declineRate * 100).toFixed(1)}%</span>
+          {/* Next Week Actions - Enhanced with expandable and semantic colors */}
+          {insights && insights.next_week_actions && (
+            <div className="bg-white rounded-xl border border-blue-200 shadow-sm overflow-hidden">
+              <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-200">
+                <h3 className="font-bold text-blue-800 flex items-center gap-2">
+                  <div className="p-1.5 bg-blue-600 rounded-lg">
+                    <Calendar size={16} className="text-white" />
                   </div>
-                  <div className="text-xs text-amber-800 mb-2">At risk: ${(w.potentialLoss / 1000000).toFixed(1)}M</div>
-                  <div className="flex gap-2">
-                    <button className="flex-1 py-1.5 bg-amber-600 text-white text-xs rounded hover:bg-amber-700 flex items-center justify-center gap-1"><Phone size={12} /> Call</button>
-                    <button className="flex-1 py-1.5 bg-white border border-amber-300 text-amber-700 text-xs rounded hover:bg-amber-50 flex items-center justify-center gap-1"><Mail size={12} /> Offer</button>
-                  </div>
-                </div>
-              ))}
+                  Next Week Actions
+                </h3>
+              </div>
+              <div className="p-3 space-y-2">
+                {insights.next_week_actions.map((action: any, idx: number) => {
+                  const actionText = typeof action === 'string' ? action : action.text;
+                  const clients = typeof action === 'object' ? action.clients : null;
+
+                  // Determine semantic color based on action content
+                  let textColor = 'text-slate-700';
+                  let iconColor = 'text-blue-600';
+                  let bgColor = 'bg-blue-100';
+                  let hoverBg = 'hover:bg-blue-50';
+
+                  if (actionText.toLowerCase().includes('urgent') || actionText.toLowerCase().includes('allocate')) {
+                    textColor = 'text-red-700 font-medium';
+                    iconColor = 'text-red-600';
+                    bgColor = 'bg-red-100';
+                    hoverBg = 'hover:bg-red-50';
+                  } else if (actionText.toLowerCase().includes('monitor') || actionText.toLowerCase().includes('decline')) {
+                    textColor = 'text-amber-700';
+                    iconColor = 'text-amber-600';
+                    bgColor = 'bg-amber-100';
+                    hoverBg = 'hover:bg-amber-50';
+                  } else if (actionText.toLowerCase().includes('surplus') || actionText.toLowerCase().includes('可释放')) {
+                    textColor = 'text-green-700';
+                    iconColor = 'text-green-600';
+                    bgColor = 'bg-green-100';
+                    hoverBg = 'hover:bg-green-50';
+                  }
+
+                  return (
+                    <details key={idx} className="group">
+                      <summary className={`cursor-pointer list-none flex items-start gap-2 p-2.5 rounded-lg transition-colors ${hoverBg}`}>
+                        <div className={`mt-0.5 p-1 ${bgColor} rounded group-open:rotate-90 transition-transform`}>
+                          <ChevronRight size={14} className={iconColor} />
+                        </div>
+                        <span className={`text-sm flex-1 text-left ${textColor}`}>{actionText}</span>
+                      </summary>
+                      <div className="ml-8 mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200 text-left">
+                        <p className="text-xs text-gray-600 leading-relaxed mb-2">
+                          {actionText.toLowerCase().includes('allocate') && 'Priority action: Review client forecasts and prepare capacity allocation plan for upcoming week.'}
+                          {actionText.toLowerCase().includes('urgent') && 'High priority: Immediate capacity expansion needed to prevent service disruption.'}
+                          {actionText.toLowerCase().includes('monitor') && 'Watch closely: Track demand patterns and prepare contingency plans if decline continues.'}
+                          {actionText.toLowerCase().includes('surplus') && 'Optimization opportunity: Consider redistributing excess capacity to clients with gaps.'}
+                          {actionText.toLowerCase().includes('coverage') && 'Current allocation efficiency metric. Target: maintain 85-95% coverage.'}
+                          {!actionText.toLowerCase().includes('allocate') && !actionText.toLowerCase().includes('urgent') && !actionText.toLowerCase().includes('monitor') && !actionText.toLowerCase().includes('surplus') && !actionText.toLowerCase().includes('coverage') && 'Review this metric and adjust operational plans accordingly.'}
+                        </p>
+                        {clients && clients.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <p className="text-xs font-semibold text-gray-700 mb-2">Affected Clients:</p>
+                            <div className="space-y-1.5">
+                              {clients.map((client: any, cidx: number) => (
+                                <div key={cidx} className="flex items-center justify-between bg-white px-2 py-1.5 rounded border border-gray-200">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-mono text-xs font-semibold text-slate-800">{client.id}</span>
+                                    <span className="text-xs text-gray-500">({client.dest})</span>
+                                  </div>
+                                  {client.gap !== undefined && (
+                                    <span className={`text-xs font-bold ${client.gap > 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                                      {client.gap > 0 ? '+' : ''}{client.gap}
+                                    </span>
+                                  )}
+                                  {client.trend !== undefined && (
+                                    <span className={`text-xs font-bold ${client.trend >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                      {client.trend >= 0 ? '+' : ''}{client.trend}%
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </details>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* 4-Week Trend Alerts - Enhanced with expandable and semantic colors */}
+          {insights && insights.four_week_trends && (
+            <div className="bg-white rounded-xl border border-amber-200 shadow-sm overflow-hidden">
+              <div className="p-4 bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-200">
+                <h3 className="font-bold text-amber-800 flex items-center gap-2">
+                  <div className="p-1.5 bg-amber-600 rounded-lg">
+                    <TrendingUp size={16} className="text-white" />
+                  </div>
+                  4-Week Trend Alerts
+                </h3>
+              </div>
+              <div className="p-3 space-y-2">
+                {insights.four_week_trends.map((trend: any, idx: number) => {
+                  const trendText = typeof trend === 'string' ? trend : trend.text;
+                  const clients = typeof trend === 'object' ? trend.clients : null;
+
+                  // Determine semantic color based on trend content
+                  let textColor = 'text-slate-700';
+                  let iconColor = 'text-amber-600';
+                  let bgColor = 'bg-amber-100';
+                  let hoverBg = 'hover:bg-amber-50';
+
+                  if (trendText.toLowerCase().includes('growth') || trendText.toLowerCase().includes('growing')) {
+                    textColor = 'text-green-700 font-medium';
+                    iconColor = 'text-green-600';
+                    bgColor = 'bg-green-100';
+                    hoverBg = 'hover:bg-green-50';
+                  } else if (trendText.toLowerCase().includes('risk') || trendText.toLowerCase().includes('drop')) {
+                    textColor = 'text-red-700 font-medium';
+                    iconColor = 'text-red-600';
+                    bgColor = 'bg-red-100';
+                    hoverBg = 'hover:bg-red-50';
+                  } else if (trendText.toLowerCase().includes('stable')) {
+                    textColor = 'text-blue-700';
+                    iconColor = 'text-blue-600';
+                    bgColor = 'bg-blue-100';
+                    hoverBg = 'hover:bg-blue-50';
+                  }
+
+                  return (
+                    <details key={idx} className="group">
+                      <summary className={`cursor-pointer list-none flex items-start gap-2 p-2.5 rounded-lg transition-colors ${hoverBg}`}>
+                        <div className={`mt-0.5 p-1 ${bgColor} rounded group-open:rotate-90 transition-transform`}>
+                          <ChevronRight size={14} className={iconColor} />
+                        </div>
+                        <span className={`text-sm flex-1 text-left ${textColor}`}>{trendText}</span>
+                      </summary>
+                      <div className="ml-8 mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200 text-left">
+                        <p className="text-xs text-gray-600 leading-relaxed mb-2">
+                          {trendText.toLowerCase().includes('health score') && 'Overall client health metric. Higher scores indicate better demand stability and capacity alignment.'}
+                          {trendText.toLowerCase().includes('growth') && 'Positive indicator: These clients show strong upward demand trends. Consider proactive capacity planning.'}
+                          {trendText.toLowerCase().includes('risk') && 'Warning: Declining demand may indicate market changes or client issues. Investigate root causes.'}
+                          {trendText.toLowerCase().includes('stable') && 'Good sign: Demand patterns are predictable and consistent across the client base.'}
+                          {trendText.toLowerCase().includes('volume') && 'Total projected demand across all clients for the 4-week forecast period.'}
+                          {!trendText.toLowerCase().includes('health') && !trendText.toLowerCase().includes('growth') && !trendText.toLowerCase().includes('risk') && !trendText.toLowerCase().includes('stable') && !trendText.toLowerCase().includes('volume') && 'Long-term trend indicator. Monitor this metric over multiple forecast cycles.'}
+                        </p>
+                        {clients && clients.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <p className="text-xs font-semibold text-gray-700 mb-2">Client Details:</p>
+                            <div className="space-y-1.5">
+                              {clients.map((client: any, cidx: number) => (
+                                <div key={cidx} className="flex items-center justify-between bg-white px-2 py-1.5 rounded border border-gray-200">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-mono text-xs font-semibold text-slate-800">{client.id}</span>
+                                    <span className="text-xs text-gray-500">({client.dest})</span>
+                                  </div>
+                                  {client.trend !== undefined && (
+                                    <span className={`text-xs font-bold ${client.trend >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                      {client.trend >= 0 ? '+' : ''}{client.trend}%
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </details>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
+
     </div>
   );
 }

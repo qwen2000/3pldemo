@@ -5,9 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fd4532f7-f2ae-40ca-b698-de25a5d447f2" name="更改" comment="1.0">
-      <change afterPath="$PROJECT_DIR$/test/frontteset.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/operation_analyzer.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/forecast_processor.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/forecast_processor.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/App.tsx" afterDir="false" />
     </list>
@@ -27,7 +26,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="v1.3" />
+        <entry key="$PROJECT_DIR$" value="v1.4" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -44,55 +43,55 @@
       <entry key="S5" value="1.0" />
       <entry key="S10" value="1.0" />
       <entry key="S30" value="1.0" />
-      <entry key="S60" value="1.000000003699268" />
-      <entry key="M2" value="1.0001049935235693" />
-      <entry key="M5" value="1.049824308135744" />
-      <entry key="M10" value="1.4100535423670015" />
-      <entry key="M15" value="1.876629088756014" />
-      <entry key="M30" value="3.0702322719382416" />
-      <entry key="H1" value="4.429692475585133" />
-      <entry key="H2" value="5.630694421091071" />
-      <entry key="H4" value="6.641710632113105" />
-      <entry key="D1" value="10.229193211672275" />
-      <entry key="W1" value="12.49098572722153" />
+      <entry key="S60" value="1.0000000000000198" />
+      <entry key="M2" value="1.0000001402447403" />
+      <entry key="M5" value="1.0018145289465759" />
+      <entry key="M10" value="1.0428676371839263" />
+      <entry key="M15" value="1.1282163865478925" />
+      <entry key="M30" value="1.5263790932609154" />
+      <entry key="H1" value="2.6549708789694084" />
+      <entry key="H2" value="4.528348147028844" />
+      <entry key="H4" value="6.526453126523855" />
+      <entry key="D1" value="11.617317728249072" />
+      <entry key="W1" value="14.382262292237554" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
-      <entry key="MS500" value="0.0" />
-      <entry key="S2" value="0.0" />
-      <entry key="S5" value="0.0" />
-      <entry key="S10" value="0.0" />
-      <entry key="S30" value="0.0" />
-      <entry key="S60" value="0.0" />
-      <entry key="M2" value="0.0" />
-      <entry key="M5" value="0.0" />
-      <entry key="M10" value="0.0" />
-      <entry key="M15" value="0.0" />
-      <entry key="M30" value="0.0" />
-      <entry key="H1" value="0.0" />
-      <entry key="H2" value="0.0" />
-      <entry key="H4" value="0.0" />
-      <entry key="D1" value="0.0" />
-      <entry key="W1" value="0.0" />
+      <entry key="MS500" value="9.136187702912385E-256" />
+      <entry key="S2" value="1.7385662851637714E-64" />
+      <entry key="S5" value="3.133837703981254E-26" />
+      <entry key="S10" value="1.7702648683124383E-13" />
+      <entry key="S30" value="5.614952459721125E-5" />
+      <entry key="S60" value="0.007493298645937666" />
+      <entry key="M2" value="0.08656384144628557" />
+      <entry key="M5" value="0.3757808187764717" />
+      <entry key="M10" value="0.6130096400355151" />
+      <entry key="M15" value="0.7216249428607378" />
+      <entry key="M30" value="0.8494851045549521" />
+      <entry key="H1" value="0.921675162166667" />
+      <entry key="H2" value="0.9600391461636691" />
+      <entry key="H4" value="0.979815873602622" />
+      <entry key="D1" value="0.9966073333021322" />
+      <entry key="W1" value="0.9995146271398959" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="0.021196942616369868" />
-      <entry key="MS500" value="0.4626522140189261" />
-      <entry key="S2" value="0.8247335486100814" />
-      <entry key="S5" value="0.9258176680494109" />
-      <entry key="S10" value="0.9621941945623093" />
-      <entry key="S30" value="0.9872358341195037" />
-      <entry key="S60" value="0.9935974241828652" />
-      <entry key="M2" value="0.9968976182130658" />
-      <entry key="M5" value="1.048358708332699" />
-      <entry key="M10" value="1.408698704954989" />
-      <entry key="M15" value="1.8752566011365457" />
-      <entry key="M30" value="3.0690789941491654" />
-      <entry key="H1" value="4.428922662127006" />
-      <entry key="H2" value="5.630246946823947" />
-      <entry key="H4" value="6.641467554731454" />
-      <entry key="D1" value="10.229142637560564" />
-      <entry key="W1" value="12.490977567998982" />
+      <entry key="MS100" value="0.022876338999150397" />
+      <entry key="MS500" value="0.46976137460700584" />
+      <entry key="S2" value="0.8278836889864734" />
+      <entry key="S5" value="0.9272305464354625" />
+      <entry key="S10" value="0.9629281107308543" />
+      <entry key="S30" value="0.9875360162413983" />
+      <entry key="S60" value="1.0007408374712603" />
+      <entry key="M2" value="1.0806254508623234" />
+      <entry key="M5" value="1.3714349579319134" />
+      <entry key="M10" value="1.6512359756593475" />
+      <entry key="M15" value="1.8462651054863726" />
+      <entry key="M30" value="2.373730142017937" />
+      <entry key="H1" value="3.5753476806194424" />
+      <entry key="H2" value="5.487590051411833" />
+      <entry key="H4" value="7.505804389799226" />
+      <entry key="D1" value="12.613827557553726" />
+      <entry key="W1" value="15.381761688836686" />
     </decayedShown>
   </component>
   <component name="ProblemsViewState">
@@ -118,10 +117,10 @@
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
     "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "v1.4",
+    "git-widget-placeholder": "v1.5",
     "ignore.virus.scanning.warn.message": "true",
     "junie.onboarding.icon.badge.shown": "true",
-    "last_opened_file_path": "C:/Users/user/OneDrive - lscm.hk/_Transformer_Proj/3pl-dashboard/frontend/src",
+    "last_opened_file_path": "C:/Users/user/OneDrive - lscm.hk/_Transformer_Proj/3pl-dashboard/backend",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -134,6 +133,7 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\user\OneDrive - lscm.hk\_Transformer_Proj\3pl-dashboard\backend" />
       <recent name="C:\Users\user\OneDrive - lscm.hk\_Transformer_Proj\3pl-dashboard\frontend\src" />
       <recent name="C:\Users\user\OneDrive - lscm.hk\_Transformer_Proj\3pl-dashboard\frontend" />
     </key>
@@ -154,7 +154,7 @@
       <option name="presentableId" value="Default" />
       <updated>1780385190184</updated>
       <workItem from="1780385191238" duration="8137000" />
-      <workItem from="1780450873474" duration="31840000" />
+      <workItem from="1780450873474" duration="37107000" />
     </task>
     <task id="LOCAL-00001" summary="1.0">
       <option name="closed" value="true" />
@@ -188,7 +188,15 @@
       <option name="project" value="LOCAL" />
       <updated>1780553407620</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="1.0">
+      <option name="closed" value="true" />
+      <created>1780562649545</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1780562649545</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
