@@ -155,7 +155,7 @@ function App() {
 <NavButton id="overview" label="Market Overview" icon={Activity} active={activeTab} onClick={setActiveTab} />
 <NavButton id="forecast" label="4-Week Forecast" icon={Calendar} active={activeTab} onClick={setActiveTab} />
 <NavButton id="operation" label="Operation Plan" icon={TrendingUp} active={activeTab} onClick={setActiveTab} />
-<NavButton id="demo" label="Business Value Demo" icon={Play} active={activeTab} onClick={setActiveTab} />
+
           </nav>
         </div>
       </header>
@@ -192,7 +192,7 @@ function App() {
         {activeTab === 'overview' && <OverviewModule />}
         {activeTab === 'forecast' && <ForecastModule />}
         {activeTab === 'operation' && <OperationPlanModule />}
-        {activeTab === 'demo' && <BusinessValueDemo />}
+
       </main>
     </div>
   );
