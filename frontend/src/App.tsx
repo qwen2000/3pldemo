@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Package, TrendingUp, ShoppingCart, Calendar,
-  Download, Filter, AlertTriangle, AlertOctagon,
-  Play, RefreshCw, ArrowRight, BarChart2, PieChart as PieChartIcon,
-  Globe, Truck, Activity, CheckCircle, XCircle, Clock,
-  Zap, TrendingDown, Users, DollarSign,
-  ChevronRight, ChevronLeft, Pause,
-  MessageSquare, Phone, Mail, Award, Target, HelpCircle,
+  Package, TrendingUp, Calendar,
+  Download, Filter, AlertTriangle,
+  Play, RefreshCw, BarChart2, PieChart as PieChartIcon,
+  Globe, Truck, Activity, CheckCircle,
+  Users, DollarSign,
+  ChevronRight, Target, HelpCircle,
   Search, ChevronDown, Loader2, AlertCircle, BarChart3,
 } from 'lucide-react';
 import {
@@ -52,6 +51,8 @@ interface PerformanceMetrics {
   core_wape: number;
   head_wape: number;
   monthly_error: number;
+  long_tail_wape: number; // Added missing property
+  mid_tier_wape: number;  // Added missing property
 }
 
 // API Configuration
@@ -69,71 +70,13 @@ const clientData = [
   { id: 'M***A', dest: 'US, MX', w1Vol: 12000, w1Wt: 3100.0, w2Vol: 11000, w2Wt: 2900, w3Vol: 10500, w3Wt: 2800, w4Vol: 9000, w4Wt: 2400, healthScore: 45, churnRisk: 'CRITICAL' },
 ];
 
-const procurementData = clientData.map(c => {
-  const currentCap = Math.floor(c.w1Vol * 0.8);
-  const gap = c.w1Vol - currentCap;
-  const declineRate = (c.w4Vol - c.w1Vol) / c.w1Vol;
-  const potentialLoss = c.churnRisk === 'CRITICAL' ? 1800000 : c.churnRisk === 'HIGH' ? 1200000 : 0;
-  return { ...c, currentCap, gap, declineRate, potentialLoss };
-});
-
-interface Supplier {
-  name: string;
-  baseRate: number;
-  aiTarget: number;
-  current: number;
-  status: string;
-  responseTime: string | null;
-  reliability: number;
-}
-
-const supplierData: Supplier[] = [
-  { name: 'DHL Freight', baseRate: 2.8, aiTarget: 2.4, current: 2.8, status: 'waiting', responseTime: null, reliability: 96 },
-  { name: 'Kuehne+Nagel', baseRate: 2.6, aiTarget: 2.3, current: 2.6, status: 'waiting', responseTime: null, reliability: 94 },
-  { name: 'DB Schenker', baseRate: 2.5, aiTarget: 2.2, current: 2.5, status: 'waiting', responseTime: null, reliability: 92 },
-  { name: 'XPO Logistics', baseRate: 2.7, aiTarget: 2.35, current: 2.7, status: 'waiting', responseTime: null, reliability: 89 },
-];
-
 // ==========================================
 // Main App Component
 // ==========================================
 
 function App() {
   const [activeTab, setActiveTab] = useState('overview');
-  const [liveMode, setLiveMode] = useState(false);
-  const [metrics, setMetrics] = useState({
-    activeShipments: 1247,
-    onTimeRate: 96.8,
-    costPerUnit: 2.34,
-    aiConfidence: 94.5,
-    alerts: 3,
-    costSavings: 127500
-  });
-
   const { summary, loading: realDataLoading } = useRealDashboardData();
-
-  useEffect(() => {
-    if (summary) {
-      setMetrics(m => ({
-        ...m,
-        activeShipments: summary.total_orders || m.activeShipments,
-        aiConfidence: summary.high_risk_rate ? (1 - summary.high_risk_rate) * 100 : m.aiConfidence,
-      }));
-    }
-  }, [summary]);
-
-  useEffect(() => {
-    if (!liveMode) return;
-    const interval = setInterval(() => {
-      setMetrics(m => ({
-        ...m,
-        activeShipments: m.activeShipments + Math.floor(Math.random() * 10 - 3),
-        onTimeRate: Math.min(100, Math.max(90, m.onTimeRate + (Math.random() - 0.5) * 0.5)),
-        aiConfidence: Math.min(100, Math.max(85, m.aiConfidence + (Math.random() - 0.5) * 0.3)),
-      }));
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [liveMode]);
 
   return (
     <div className="min-h-screen bg-gray-50 text-slate-900 font-sans">
@@ -152,47 +95,45 @@ function App() {
             </div>
           </div>
           <nav className="flex space-x-1 bg-gray-100 p-1 rounded-lg overflow-x-auto">
-<NavButton id="overview" label="Market Overview" icon={Activity} active={activeTab} onClick={setActiveTab} />
-<NavButton id="forecast" label="4-Week Forecast" icon={Calendar} active={activeTab} onClick={setActiveTab} />
-<NavButton id="operation" label="Operation Plan" icon={TrendingUp} active={activeTab} onClick={setActiveTab} />
-
+            <NavButton id="overview" label="Market Overview" icon={Activity} active={activeTab} onClick={setActiveTab} />
+            <NavButton id="forecast" label="4-Week Forecast" icon={Calendar} active={activeTab} onClick={setActiveTab} />
+            <NavButton id="operation" label="Operation Plan" icon={TrendingUp} active={activeTab} onClick={setActiveTab} />
           </nav>
         </div>
       </header>
 
       {/* Operations Command Bar */}
-<div className="bg-slate-900 px-6 py-4 flex items-center justify-between">
-  <div className="flex items-center gap-8">
-    <div>
-      <div className="text-xs text-slate-400 uppercase tracking-wide">Active Shipments</div>
-      <div className="text-2xl font-bold text-white">170,934 <span className="text-green-400 text-sm">+12%</span></div>
-    </div>
-    <div>
-      <div className="text-xs text-slate-400 uppercase tracking-wide">On-Time Rate</div>
-      <div className="text-2xl font-bold text-white">96.8% <span className="text-green-400 text-sm">+2.3%</span></div>
-    </div>
-    <div>
-      <div className="text-xs text-slate-400 uppercase tracking-wide">Space Utilization</div>
-      <div className="text-2xl font-bold text-white">78.5% <span className="text-green-400 text-sm">+3.2%</span></div>
-    </div>
-    <div>
-      <div className="text-xs text-slate-400 uppercase tracking-wide">On-Duty Staff</div>
-      <div className="text-2xl font-bold text-white">342 <span className="text-green-400 text-sm">+8</span></div>
-    </div>
-  </div>
-  <div className="flex items-center gap-4">
-    <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 rounded-lg border border-slate-700">
-      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-      <span className="text-sm font-medium text-slate-200">LIVE</span>
-    </div>
-  </div>
-</div>
+      <div className="bg-slate-900 px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-8">
+          <div>
+            <div className="text-xs text-slate-400 uppercase tracking-wide">Active Shipments</div>
+            <div className="text-2xl font-bold text-white">170,934 <span className="text-green-400 text-sm">+12%</span></div>
+          </div>
+          <div>
+            <div className="text-xs text-slate-400 uppercase tracking-wide">On-Time Rate</div>
+            <div className="text-2xl font-bold text-white">96.8% <span className="text-green-400 text-sm">+2.3%</span></div>
+          </div>
+          <div>
+            <div className="text-xs text-slate-400 uppercase tracking-wide">Space Utilization</div>
+            <div className="text-2xl font-bold text-white">78.5% <span className="text-green-400 text-sm">+3.2%</span></div>
+          </div>
+          <div>
+            <div className="text-xs text-slate-400 uppercase tracking-wide">On-Duty Staff</div>
+            <div className="text-2xl font-bold text-white">342 <span className="text-green-400 text-sm">+8</span></div>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 rounded-lg border border-slate-700">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-sm font-medium text-slate-200">LIVE</span>
+          </div>
+        </div>
+      </div>
 
       <main className="max-w-7xl mx-auto p-6">
         {activeTab === 'overview' && <OverviewModule />}
         {activeTab === 'forecast' && <ForecastModule />}
         {activeTab === 'operation' && <OperationPlanModule />}
-
       </main>
     </div>
   );
@@ -218,52 +159,6 @@ function NavButton({ id, label, icon: Icon, active, onClick }: {
       {label}
     </button>
   );
-}
-
-function MetricTicker({ label, value, trend, alert, positive }: {
-  label: string;
-  value: string;
-  trend: string;
-  alert?: boolean;
-  positive?: boolean;
-}) {
-  const trendColor = alert ? 'text-red-400' : positive ? 'text-green-400' : trend.startsWith('+') ? 'text-green-400' : 'text-red-400';
-  return (
-    <div>
-      <div className="text-xs text-slate-400 uppercase tracking-wider">{label}</div>
-      <div className="flex items-center gap-2">
-        <span className="text-lg font-bold">{value}</span>
-        <span className={`text-xs ${trendColor}`}>{trend}</span>
-      </div>
-    </div>
-  );
-}
-
-function AIStatusIndicator({ confidence }: { confidence: number }) {
-  return (
-    <div className="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-full">
-      <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-      <span className="text-xs text-slate-300">AI Confidence</span>
-      <span className="text-sm font-bold text-green-400">{confidence.toFixed(1)}%</span>
-    </div>
-  );
-}
-
-function AlertBadge({ count }: { count: number }) {
-  return (
-    <button className="relative p-2 bg-slate-800 rounded-full hover:bg-slate-700 transition-colors">
-      <AlertTriangle size={16} className="text-amber-400" />
-      {count > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center font-bold">{count}</span>}
-    </button>
-  );
-}
-
-function TableHeader({ children, align = 'left' }: { children: React.ReactNode; align?: 'left' | 'right' | 'center' }) {
-  return <th className={`px-4 py-3 text-${align} text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-50 border-b border-gray-200`}>{children}</th>;
-}
-
-function TableCell({ children, className = "", align = 'left' }: { children: React.ReactNode; className?: string; align?: 'left' | 'right' | 'center' }) {
-  return <td className={`px-4 py-4 whitespace-nowrap text-sm text-gray-700 border-b border-gray-100 text-${align} ${className}`}>{children}</td>;
 }
 
 // ==========================================
@@ -745,7 +640,7 @@ function OverviewModule() {
         </div>
       </div>
 
-      {/* ========== CUSTOMER STATISTICS (常规显示) ========== */}
+      {/* ========== CUSTOMER STATISTICS ========== */}
       {customerStats.length > 0 && (
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
@@ -827,7 +722,7 @@ function OverviewModule() {
         </div>
       )}
 
-      {/* ========== ORDER DATA EXPLORER (受 showDetails 控制) ========== */}
+      {/* ========== ORDER DATA EXPLORER ========== */}
       {showDetails && (
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
@@ -996,8 +891,6 @@ function OperationPlanModule() {
   const [isRunning, setIsRunning] = useState(false);
 
   const [capacityGapData, setCapacityGapData] = useState<any[]>([]);
-  const [urgentActions, setUrgentActions] = useState<any[]>([]);
-  const [anomalies, setAnomalies] = useState<any>(null);
   const [insights, setInsights] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -1014,7 +907,6 @@ function OperationPlanModule() {
     setWorkflowState('running');
     setError(null);
 
-    // Simulate analysis processing
     await new Promise(resolve => setTimeout(resolve, 2500));
 
     try {
@@ -1027,8 +919,6 @@ function OperationPlanModule() {
       const data = await response.json();
 
       setCapacityGapData(data.capacity_gap_analysis || []);
-      setUrgentActions(data.urgent_actions || []);
-      setAnomalies(data.anomalies || null);
       setInsights(data.insights || null);
 
       setWorkflowState('completed');
@@ -1294,28 +1184,28 @@ function OperationPlanModule() {
                 <tr className="border-b border-gray-100">
                   <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase">Client</th>
                   <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase">
-  <div className="flex items-center gap-1 group relative">
-    Health
-    <div className="relative">
-      <HelpCircle size={14} className="text-gray-400 cursor-help" />
-      <div className="invisible group-hover:visible absolute left-0 top-6 w-72 bg-slate-800 text-white text-xs rounded-lg p-3 shadow-lg z-50 normal-case font-normal">
-        <div className="font-semibold mb-2">Health Score Formula (0-100)</div>
-        <div className="space-y-1 text-left">
-          <div><strong>Base:</strong> 70 points</div>
-          <div className="mt-2"><strong>Trend Adjustment:</strong></div>
-          <div className="ml-2">• Stable (-10% to +10%): +15</div>
-          <div className="ml-2">• Fast growth (&gt;10%): -15</div>
-          <div className="ml-2">• Declining (&lt;-30%): -20</div>
-          <div className="mt-2"><strong>Gap Adjustment:</strong></div>
-          <div className="ml-2">• Perfect match (0): +15</div>
-          <div className="ml-2">• Small gap (&lt;10): +5</div>
-          <div className="ml-2">• Medium gap (20-50): -10</div>
-          <div className="ml-2">• Large gap (&gt;50): -20</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</th>
+                    <div className="flex items-center gap-1 group relative">
+                      Health
+                      <div className="relative">
+                        <HelpCircle size={14} className="text-gray-400 cursor-help" />
+                        <div className="invisible group-hover:visible absolute left-0 top-6 w-72 bg-slate-800 text-white text-xs rounded-lg p-3 shadow-lg z-50 normal-case font-normal">
+                          <div className="font-semibold mb-2">Health Score Formula (0-100)</div>
+                          <div className="space-y-1 text-left">
+                            <div><strong>Base:</strong> 70 points</div>
+                            <div className="mt-2"><strong>Trend Adjustment:</strong></div>
+                            <div className="ml-2">• Stable (-10% to +10%): +15</div>
+                            <div className="ml-2">• Fast growth (&gt;10%): -15</div>
+                            <div className="ml-2">• Declining (&lt;-30%): -20</div>
+                            <div className="mt-2"><strong>Gap Adjustment:</strong></div>
+                            <div className="ml-2">• Perfect match (0): +15</div>
+                            <div className="ml-2">• Small gap (&lt;10): +5</div>
+                            <div className="ml-2">• Medium gap (20-50): -10</div>
+                            <div className="ml-2">• Large gap (&gt;50): -20</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </th>
                   <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase">Dest.</th>
                   <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase text-right">AI Pred. (W+1)</th>
                   <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase text-right">Allocated</th>
@@ -1406,7 +1296,6 @@ function OperationPlanModule() {
                   const actionText = typeof action === 'string' ? action : action.text;
                   const clients = typeof action === 'object' ? action.clients : null;
 
-                  // Determine semantic color based on action content
                   let textColor = 'text-slate-700';
                   let iconColor = 'text-blue-600';
                   let bgColor = 'bg-blue-100';
@@ -1495,7 +1384,6 @@ function OperationPlanModule() {
                   const trendText = typeof trend === 'string' ? trend : trend.text;
                   const clients = typeof trend === 'object' ? trend.clients : null;
 
-                  // Determine semantic color based on trend content
                   let textColor = 'text-slate-700';
                   let iconColor = 'text-amber-600';
                   let bgColor = 'bg-amber-100';
@@ -1573,18 +1461,6 @@ function OperationPlanModule() {
 
 // ==========================================
 // ForecastModule Component
-// 用这个函数替换 App.tsx 中原来的 ForecastModule 函数
-// ==========================================
-// ==========================================
-// ForecastModule v2 - 最终版本
-// ==========================================
-//
-// 新功能:
-// 1. "Run AI Engine" 按钮 - 点击后才显示数据
-// 2. 更新的 Performance 指标 (按订单量分层的WAPE)
-// 3. 使用 fake_mapping 的 category 名称
-// 4. 表格限制10行 + 滚动条
-//
 // ==========================================
 
 function ForecastModule() {
@@ -2120,7 +1996,7 @@ function ForecastModule() {
 
 
 // ==========================================
-// StatCard Component (添加到 ForecastModule 之后)
+// StatCard Component
 // ==========================================
 function StatCard({ title, value, color }: { title: string; value: string; color: string }) {
   return (
@@ -2131,148 +2007,5 @@ function StatCard({ title, value, color }: { title: string; value: string; color
   );
 }
 
-
-// ==========================================
-// BusinessValueDemo
-// ==========================================
-
-function BusinessValueDemo() {
-  const [demoStep, setDemoStep] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-
-  const demoScenarios = [
-    {
-      title: "Mon 09:00 - AI Weekly Forecast",
-      subtitle: "System analyzes 200+ signal sources",
-      description: "ML model integrates historical orders, promo calendar, weather, social sentiment to generate W+1 to W+4 predictions.",
-      stats: [{ label: "Data Processed", value: "2.4TB" }, { label: "Accuracy", value: "94.3%" }, { label: "Manual Time", value: "0 min" }],
-      businessValue: ["Save 40 analyst hours/week", "Reduce forecast error from ±15% to ±6%"],
-      color: "blue"
-    },
-    {
-      title: "Mon 10:30 - Capacity Gap Alert",
-      subtitle: "3 clients have 12,500 unit gap",
-      description: "System identifies gap by comparing forecast demand vs available capacity. $47K at risk if not addressed.",
-      stats: [{ label: "Gap Units", value: "12,500" }, { label: "Clients Affected", value: "3" }, { label: "Potential Loss", value: "$47K" }],
-      businessValue: ["72-hour early warning", "Avoid penalties and churn"],
-      color: "red"
-    },
-    {
-      title: "Mon 11:15 - Scenario Comparison",
-      subtitle: "AI generates 3 strategies, $23K cost diff",
-      description: "Multi-objective optimization based on cost, speed, reliability, and carbon emissions.",
-      stats: [{ label: "Scenarios", value: "3" }, { label: "Decision Time", value: "8 min" }, { label: "Est. Savings", value: "$15.8K" }],
-      businessValue: ["3x faster decisions", "Global cost optimization"],
-      color: "purple"
-    },
-    {
-      title: "Mon 14:00 - Digital Approval",
-      subtitle: "COO mobile approval in 18 minutes",
-      description: "Smart routing to decision makers with e-signature and budget validation. No offline meetings needed.",
-      stats: [{ label: "Approval Levels", value: "2" }, { label: "Time Used", value: "18 min" }, { label: "Traditional", value: "2 days" }],
-      businessValue: ["48h → 18min approval", "Capture capacity windows"],
-      color: "green"
-    },
-    {
-      title: "Mon 16:30 - Auto Execution",
-      subtitle: "PO auto-sent, carrier API confirms",
-      description: "Direct system integration with top 10 carriers for order exchange, capacity confirmation, and status sync.",
-      stats: [{ label: "Response Time", value: "<30min" }, { label: "Confirm Rate", value: "99.2%" }, { label: "Manual Touch", value: "0" }],
-      businessValue: ["60% faster response", "Focus on strategic negotiation"],
-      color: "blue"
-    },
-    {
-      title: "Fri 17:00 - Weekly Review",
-      subtitle: "94.3% accuracy, $31K saved this week",
-      description: "Auto-generated execution report comparing forecast vs actual, quantifying ROI, continuously improving model.",
-      stats: [{ label: "Weekly Savings", value: "$31K" }, { label: "YTD Savings", value: "$412K" }, { label: "Client Satisfaction", value: "4.8/5" }],
-      businessValue: ["Quantified ROI", "Data-driven culture"],
-      color: "emerald"
-    }
-  ];
-
-  useEffect(() => {
-    if (!isPlaying) return;
-    const interval = setInterval(() => {
-      setDemoStep(s => {
-        if (s >= demoScenarios.length - 1) {
-          setIsPlaying(false);
-          return s;
-        }
-        return s + 1;
-      });
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [isPlaying]);
-
-  const current = demoScenarios[demoStep];
-
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-              <Play size={28} className="text-blue-600" />
-              End-to-End Business Process Demo
-            </h2>
-            <p className="text-slate-500 mt-1">From Monday forecast to Friday review — see how AI creates quantifiable business value</p>
-          </div>
-          <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
-            <button onClick={() => setDemoStep(Math.max(0, demoStep - 1))} disabled={demoStep === 0} className="p-2 hover:bg-white rounded disabled:opacity-30"><ChevronLeft size={18} /></button>
-            <button onClick={() => setIsPlaying(!isPlaying)} className="px-4 py-2 bg-blue-600 text-white rounded font-medium flex items-center gap-2">
-              {isPlaying ? <><Pause size={16} /> Pause</> : <><Play size={16} fill="currentColor" /> Play</>}
-            </button>
-            <button onClick={() => setDemoStep(Math.min(demoScenarios.length - 1, demoStep + 1))} disabled={demoStep === demoScenarios.length - 1} className="p-2 hover:bg-white rounded disabled:opacity-30"><ChevronRight size={18} /></button>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white p-4 rounded-lg border border-gray-200">
-        <div className="flex items-center justify-between relative">
-          <div className="absolute top-1/2 left-0 right-0 h-1 bg-gray-200 -translate-y-1/2 rounded-full" />
-          <div className="absolute top-1/2 left-0 h-1 bg-blue-600 -translate-y-1/2 rounded-full transition-all duration-500" style={{ width: `${(demoStep / (demoScenarios.length - 1)) * 100}%` }} />
-          {demoScenarios.map((s, i) => (
-            <button key={i} onClick={() => { setDemoStep(i); setIsPlaying(false); }} className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold transition-all ${i <= demoStep ? 'bg-blue-600 text-white scale-110' : 'bg-gray-200 text-gray-500'}`}>{i + 1}</button>
-          ))}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-xl shadow-lg border-2 border-blue-200 overflow-hidden">
-            <div className="p-6 bg-blue-50">
-              <div className="flex items-center gap-3 mb-2">
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-600 text-white">Step {demoStep + 1}/6</span>
-              </div>
-              <h3 className="text-2xl font-bold text-slate-800 mb-1">{current.title}</h3>
-              <p className="text-lg text-blue-700">{current.subtitle}</p>
-            </div>
-            <div className="p-6">
-              <p className="text-gray-600 mb-6">{current.description}</p>
-              <div className="grid grid-cols-3 gap-4">
-                {current.stats.map((stat, i) => (
-                  <div key={i} className="text-center p-4 bg-gray-50 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">{stat.value}</div>
-                    <div className="text-xs text-gray-500">{stat.label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-green-500 to-emerald-600 text-white p-6 rounded-xl shadow-lg">
-          <h4 className="font-bold text-lg mb-4 flex items-center gap-2"><Award size={20} /> Business Value</h4>
-          <ul className="space-y-3">
-            {current.businessValue.map((v, i) => (
-              <li key={i} className="flex items-start gap-3"><CheckCircle size={18} className="mt-0.5 flex-shrink-0 text-green-200" /><span className="text-green-50">{v}</span></li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default App;
