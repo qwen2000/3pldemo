@@ -6,7 +6,7 @@ import {
   Globe, Truck, Activity, CheckCircle, XCircle, Clock,
   Zap, TrendingDown, Users, DollarSign,
   ChevronRight, ChevronLeft, Pause,
-  MessageSquare, Phone, Mail, Award, Target,
+  MessageSquare, Phone, Mail, Award, Target, HelpCircle,
   Search, ChevronDown, Loader2, AlertCircle, BarChart3,
 } from 'lucide-react';
 import {
@@ -161,26 +161,32 @@ function App() {
       </header>
 
       {/* Operations Command Bar */}
-      <div className="bg-slate-900 text-white py-3 px-6">
-        <div className="flex justify-between items-center max-w-7xl mx-auto">
-          <div className="flex gap-8">
-            <MetricTicker label="Active Shipments" value={metrics.activeShipments.toLocaleString()} trend="+12%" />
-            <MetricTicker label="On-Time Rate" value={`${metrics.onTimeRate.toFixed(1)}%`} trend="+2.3%" alert={metrics.onTimeRate < 95} />
-            <MetricTicker label="Cost Per Unit" value={`$${metrics.costPerUnit}`} trend="-8%" positive />
-            <MetricTicker label="Q2 Savings" value={`$${(metrics.costSavings / 1000).toFixed(0)}K`} trend="+15%" positive />
-          </div>
-          <div className="flex items-center gap-4">
-            <AIStatusIndicator confidence={metrics.aiConfidence} />
-            <AlertBadge count={metrics.alerts} />
-            <button
-              onClick={() => setLiveMode(!liveMode)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-medium transition-all ${liveMode ? 'bg-green-500 text-white' : 'bg-slate-700 text-slate-300'}`}
-            >
-              {liveMode ? <><Zap size={14} className="animate-pulse" /> LIVE</> : <><Clock size={14} /> LIVE MODE</>}
-            </button>
-          </div>
-        </div>
-      </div>
+<div className="bg-slate-900 px-6 py-4 flex items-center justify-between">
+  <div className="flex items-center gap-8">
+    <div>
+      <div className="text-xs text-slate-400 uppercase tracking-wide">Active Shipments</div>
+      <div className="text-2xl font-bold text-white">170,934 <span className="text-green-400 text-sm">+12%</span></div>
+    </div>
+    <div>
+      <div className="text-xs text-slate-400 uppercase tracking-wide">On-Time Rate</div>
+      <div className="text-2xl font-bold text-white">96.8% <span className="text-green-400 text-sm">+2.3%</span></div>
+    </div>
+    <div>
+      <div className="text-xs text-slate-400 uppercase tracking-wide">Space Utilization</div>
+      <div className="text-2xl font-bold text-white">78.5% <span className="text-green-400 text-sm">+3.2%</span></div>
+    </div>
+    <div>
+      <div className="text-xs text-slate-400 uppercase tracking-wide">On-Duty Staff</div>
+      <div className="text-2xl font-bold text-white">342 <span className="text-green-400 text-sm">+8</span></div>
+    </div>
+  </div>
+  <div className="flex items-center gap-4">
+    <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 rounded-lg border border-slate-700">
+      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+      <span className="text-sm font-medium text-slate-200">LIVE</span>
+    </div>
+  </div>
+</div>
 
       <main className="max-w-7xl mx-auto p-6">
         {activeTab === 'overview' && <OverviewModule />}
@@ -1287,7 +1293,29 @@ function OperationPlanModule() {
               <thead className="sticky top-0 bg-gray-50 z-10">
                 <tr className="border-b border-gray-100">
                   <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase">Client</th>
-                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase">Health</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase">
+  <div className="flex items-center gap-1 group relative">
+    Health
+    <div className="relative">
+      <HelpCircle size={14} className="text-gray-400 cursor-help" />
+      <div className="invisible group-hover:visible absolute left-0 top-6 w-72 bg-slate-800 text-white text-xs rounded-lg p-3 shadow-lg z-50 normal-case font-normal">
+        <div className="font-semibold mb-2">Health Score Formula (0-100)</div>
+        <div className="space-y-1 text-left">
+          <div><strong>Base:</strong> 70 points</div>
+          <div className="mt-2"><strong>Trend Adjustment:</strong></div>
+          <div className="ml-2">• Stable (-10% to +10%): +15</div>
+          <div className="ml-2">• Fast growth (&gt;10%): -15</div>
+          <div className="ml-2">• Declining (&lt;-30%): -20</div>
+          <div className="mt-2"><strong>Gap Adjustment:</strong></div>
+          <div className="ml-2">• Perfect match (0): +15</div>
+          <div className="ml-2">• Small gap (&lt;10): +5</div>
+          <div className="ml-2">• Medium gap (20-50): -10</div>
+          <div className="ml-2">• Large gap (&gt;50): -20</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</th>
                   <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase">Dest.</th>
                   <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase text-right">AI Pred. (W+1)</th>
                   <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase text-right">Allocated</th>
