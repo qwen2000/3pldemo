@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Package, TrendingUp, Calendar,
   Download, Filter, AlertTriangle,
@@ -62,13 +62,6 @@ const API_BASE_URL = 'http://localhost:8000';
 // Mock Data (keep as fallback)
 // ==========================================
 
-const clientData = [
-  { id: 'A***Z', dest: 'US, CA', w1Vol: 45000, w1Wt: 12500.5, w2Vol: 46000, w2Wt: 12800, w3Vol: 47000, w3Wt: 13000, w4Vol: 48000, w4Wt: 13200, healthScore: 92, churnRisk: 'LOW' },
-  { id: 'S***N', dest: 'UK, DE, FR', w1Vol: 32000, w1Wt: 8900.2, w2Vol: 31000, w2Wt: 8700, w3Vol: 28000, w3Wt: 7800, w4Vol: 25000, w4Wt: 7000, healthScore: 62, churnRisk: 'HIGH' },
-  { id: 'T***U', dest: 'AU, NZ', w1Vol: 18000, w1Wt: 5400.0, w2Vol: 18500, w2Wt: 5500, w3Vol: 19000, w3Wt: 5600, w4Vol: 19500, w4Wt: 5700, healthScore: 88, churnRisk: 'LOW' },
-  { id: 'G***L', dest: 'JP, KR', w1Vol: 15000, w1Wt: 4200.8, w2Vol: 15200, w2Wt: 4250, w3Vol: 15500, w3Wt: 4300, w4Vol: 16000, w4Wt: 4400, healthScore: 85, churnRisk: 'LOW' },
-  { id: 'M***A', dest: 'US, MX', w1Vol: 12000, w1Wt: 3100.0, w2Vol: 11000, w2Wt: 2900, w3Vol: 10500, w3Wt: 2800, w4Vol: 9000, w4Wt: 2400, healthScore: 45, churnRisk: 'CRITICAL' },
-];
 
 // ==========================================
 // Main App Component

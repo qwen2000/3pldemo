@@ -114,7 +114,7 @@
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
     "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "v1.6",
+    "git-widget-placeholder": "main",
     "ignore.virus.scanning.warn.message": "true",
     "junie.onboarding.icon.badge.shown": "true",
     "last_opened_file_path": "C:/Users/user/OneDrive - lscm.hk/_Transformer_Proj/3pl-dashboard/backend",
@@ -151,7 +151,7 @@
       <option name="presentableId" value="Default" />
       <updated>1780385190184</updated>
       <workItem from="1780385191238" duration="8137000" />
-      <workItem from="1780450873474" duration="43099000" />
+      <workItem from="1780450873474" duration="44793000" />
     </task>
     <task id="LOCAL-00001" summary="1.0">
       <option name="closed" value="true" />
