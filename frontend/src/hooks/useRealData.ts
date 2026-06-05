@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 
-const API_URL = 'http://localhost:8000/api';
+const API_URL = 'https://lemon-geckos-pick.loca.lt/api';
 
 export interface Summary {
   total_orders: number;
