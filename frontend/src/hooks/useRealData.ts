@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 
-const API_URL = 'https://lemon-geckos-pick.loca.lt/api';
+const API_URL = 'https://open-teams-help.loca.lt';
 
 export interface Summary {
   total_orders: number;
