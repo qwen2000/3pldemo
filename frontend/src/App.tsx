@@ -56,7 +56,7 @@ interface PerformanceMetrics {
 }
 
 // API Configuration
-const API_BASE_URL = 'https://lemon-geckos-pick.loca.lt';
+const API_BASE_URL = 'https://open-teams-help.loca.lt';
 
 // ==========================================
 // Mock Data (keep as fallback)
